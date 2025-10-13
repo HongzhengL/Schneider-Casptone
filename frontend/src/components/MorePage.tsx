@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import {
     User,
     Wallet,
@@ -14,67 +16,93 @@ import {
     DollarSign,
     TrendingUp,
 } from 'lucide-react';
+import { fetchDriverPortal, ApiError } from '../services/api';
+import type { DriverPortalResponse, MenuItem } from '../types/api';
+import { Button } from './ui/button';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+    user: User,
+    edit: Edit,
+    truck: Truck,
+    'file-text': FileText,
+    wallet: Wallet,
+    'credit-card': CreditCard,
+    'trending-up': TrendingUp,
+    settings: Settings,
+    'help-circle': HelpCircle,
+    shield: Shield,
+};
 
 interface MorePageProps {
     onNavigate: (page: string) => void;
 }
 
 export function MorePage({ onNavigate }: MorePageProps) {
-    // Schneider driver data
-    const driverProfile = {
-        name: 'Johnny Rodriguez',
-        email: 'johnny.rodriguez@schneider.com',
-        phone: '+1 (555) 234-5678',
-        driverId: 'SNI-78432',
-        cdlNumber: 'WI-CDL-789456123',
-        rating: 4.9,
-        totalDeliveries: 2156,
-        memberSince: 'March 2018',
-        fleet: 'Dedicated Fleet',
-        homeTerminal: 'Green Bay, WI',
+    const [driverData, setDriverData] = useState<DriverPortalResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadPortalData = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const data = await fetchDriverPortal();
+            setDriverData(data);
+        } catch (err) {
+            console.error(err);
+            setError(
+                err instanceof ApiError
+                    ? 'Unable to load driver portal data.'
+                    : 'Something went wrong while loading driver data.'
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadPortalData();
+    }, [loadPortalData]);
+
+    const handleMenuItemClick = (item: MenuItem) => {
+        if (item.navigationTarget) {
+            onNavigate(item.navigationTarget);
+        }
     };
 
-    const walletInfo = {
-        balance: 3247.85,
-        pendingEarnings: 825.0,
-        thisWeekEarnings: 1580.5,
-        totalEarnings: 67250.4,
-        schneiderPay: {
-            mileageRate: 0.58,
-            bonusEarnings: 450.0,
-            fuelBonus: 125.5,
-        },
-    };
+    const profile = driverData?.profile;
+    const wallet = driverData?.wallet;
+    const menuSections = driverData?.menuSections ?? [];
+    const performance = driverData?.performance;
+    const appVersion = driverData?.appVersion ?? '{appVersion}';
 
-    const menuSections = [
-        {
-            title: 'Account',
-            items: [
-                { icon: User, label: 'Personal Information', action: () => {} },
-                { icon: Edit, label: 'Edit Profile', action: () => {} },
-                { icon: Truck, label: 'Vehicle Information', action: () => {} },
-                { icon: FileText, label: 'Documents', action: () => {} },
-            ],
-        },
-        {
-            title: 'Earnings & Payments',
-            items: [
-                { icon: Wallet, label: 'Wallet Details', action: () => {} },
-                { icon: CreditCard, label: 'Payment Methods', action: () => {} },
-                { icon: TrendingUp, label: 'Earnings History', action: () => {} },
-                { icon: FileText, label: 'Tax Documents', action: () => {} },
-            ],
-        },
-        {
-            title: 'Support & Settings',
-            items: [
-                { icon: Settings, label: 'App Settings', action: () => onNavigate('settings') },
-                { icon: HelpCircle, label: 'Help & Support', action: () => {} },
-                { icon: Shield, label: 'Privacy & Security', action: () => {} },
-                { icon: FileText, label: 'Terms & Conditions', action: () => {} },
-            ],
-        },
-    ];
+    const loadsCompleted = performance?.loadsCompleted ?? 47;
+    const onTimeRate = performance ? `${(performance.onTimeRate * 100).toFixed(1)}%` : '98.2%';
+    const averageRating = performance?.averageRating ?? 4.8;
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <p className="text-gray-500 text-sm">Loading driver portal…</p>
+            </div>
+        );
+    }
+
+    if (error || !profile || !wallet) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center space-y-4 text-center px-6">
+                <p className="text-red-600 text-sm">
+                    {error ?? 'Driver information is unavailable.'}
+                </p>
+                <Button
+                    onClick={loadPortalData}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    Retry
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -96,12 +124,12 @@ export function MorePage({ onNavigate }: MorePageProps) {
                                 <User className="w-8 h-8 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl text-gray-900">{driverProfile.name}</h2>
-                                <p className="text-gray-600">{driverProfile.email}</p>
+                                <h2 className="text-xl text-gray-900">{profile.name}</h2>
+                                <p className="text-gray-600">{profile.email}</p>
                                 <div className="flex items-center mt-1">
                                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                     <span className="ml-1 text-sm text-gray-600">
-                                        {driverProfile.rating} rating
+                                        {profile.rating} rating
                                     </span>
                                 </div>
                             </div>
@@ -115,23 +143,23 @@ export function MorePage({ onNavigate }: MorePageProps) {
                         <div>
                             <p className="text-sm text-gray-600">Total Miles</p>
                             <p className="text-lg text-gray-900">
-                                {(driverProfile.totalDeliveries * 245).toLocaleString()}
+                                {(profile.totalDeliveries * 245).toLocaleString()}
                             </p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">Schneider Since</p>
-                            <p className="text-lg text-gray-900">{driverProfile.memberSince}</p>
+                            <p className="text-lg text-gray-900">{profile.memberSince}</p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 pt-2">
                         <div>
                             <p className="text-sm text-gray-600">Fleet Assignment</p>
-                            <p className="text-sm text-orange-600">{driverProfile.fleet}</p>
+                            <p className="text-sm text-orange-600">{profile.fleet}</p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">Home Terminal</p>
-                            <p className="text-sm text-orange-600">{driverProfile.homeTerminal}</p>
+                            <p className="text-sm text-orange-600">{profile.homeTerminal}</p>
                         </div>
                     </div>
                 </div>
@@ -151,7 +179,7 @@ export function MorePage({ onNavigate }: MorePageProps) {
                                 <div>
                                     <p className="text-sm text-green-600">Available Balance</p>
                                     <p className="text-2xl text-green-700">
-                                        ${walletInfo.balance.toFixed(2)}
+                                        ${wallet.balance.toFixed(2)}
                                     </p>
                                 </div>
                                 <DollarSign className="w-8 h-8 text-green-500" />
@@ -163,7 +191,7 @@ export function MorePage({ onNavigate }: MorePageProps) {
                                 <div>
                                     <p className="text-sm text-orange-600">Pending Pay</p>
                                     <p className="text-2xl text-orange-700">
-                                        ${walletInfo.pendingEarnings.toFixed(2)}
+                                        ${wallet.pendingEarnings.toFixed(2)}
                                     </p>
                                 </div>
                                 <TrendingUp className="w-8 h-8 text-orange-500" />
@@ -176,26 +204,26 @@ export function MorePage({ onNavigate }: MorePageProps) {
                             <div>
                                 <span className="text-gray-600">Mileage Rate</span>
                                 <p className="text-gray-900 font-medium">
-                                    ${walletInfo.schneiderPay.mileageRate}/mi
+                                    ${wallet.schneiderPay.mileageRate}/mi
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-600">Bonus Earnings</span>
                                 <p className="text-gray-900 font-medium">
-                                    ${walletInfo.schneiderPay.bonusEarnings}
+                                    ${wallet.schneiderPay.bonusEarnings}
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-600">Fuel Bonus</span>
                                 <p className="text-gray-900 font-medium">
-                                    ${walletInfo.schneiderPay.fuelBonus}
+                                    ${wallet.schneiderPay.fuelBonus}
                                 </p>
                             </div>
                         </div>
                         <div className="flex justify-between text-sm mt-3 pt-3 border-t border-gray-100">
                             <span className="text-gray-600">This Week Total</span>
                             <span className="text-gray-900 font-medium">
-                                ${walletInfo.thisWeekEarnings.toFixed(2)}
+                                ${wallet.thisWeekEarnings.toFixed(2)}
                             </span>
                         </div>
                     </div>
@@ -214,15 +242,17 @@ export function MorePage({ onNavigate }: MorePageProps) {
                         </div>
                         <div className="divide-y divide-gray-100">
                             {section.items.map((item, itemIndex) => {
-                                const Icon = item.icon;
+                                const IconComponent = ICON_MAP[item.icon] ?? FileText;
+                                const handleClick = () => handleMenuItemClick(item);
                                 return (
                                     <button
                                         key={itemIndex}
-                                        onClick={item.action}
+                                        type="button"
+                                        onClick={handleClick}
                                         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex items-center space-x-3">
-                                            <Icon className="w-5 h-5 text-gray-400" />
+                                            <IconComponent className="w-5 h-5 text-gray-400" />
                                             <span className="text-gray-900">{item.label}</span>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -241,15 +271,15 @@ export function MorePage({ onNavigate }: MorePageProps) {
                     <div className="space-y-3">
                         <div className="flex justify-between">
                             <span className="text-gray-600">Driver ID</span>
-                            <span className="text-gray-900">{driverProfile.driverId}</span>
+                            <span className="text-gray-900">{profile.driverId}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">CDL Number</span>
-                            <span className="text-gray-900">{driverProfile.cdlNumber}</span>
+                            <span className="text-gray-900">{profile.cdlNumber}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">Phone</span>
-                            <span className="text-gray-900">{driverProfile.phone}</span>
+                            <span className="text-gray-900">{profile.phone}</span>
                         </div>
                     </div>
                 </div>
@@ -269,15 +299,15 @@ export function MorePage({ onNavigate }: MorePageProps) {
                     <h3 className="text-lg text-gray-900 mb-4">Performance This Month</h3>
                     <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
-                            <p className="text-2xl text-orange-600">47</p>
+                            <p className="text-2xl text-orange-600">{loadsCompleted}</p>
                             <p className="text-sm text-gray-600">Loads Completed</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-2xl text-green-600">98.2%</p>
+                            <p className="text-2xl text-green-600">{onTimeRate}</p>
                             <p className="text-sm text-gray-600">On-Time Rate</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-2xl text-blue-600">4.8</p>
+                            <p className="text-2xl text-blue-600">{averageRating}</p>
                             <p className="text-sm text-gray-600">Avg Rating</p>
                         </div>
                     </div>
@@ -285,7 +315,7 @@ export function MorePage({ onNavigate }: MorePageProps) {
             </div>
 
             {/* App Version */}
-            <div className="text-center text-gray-400 text-sm pb-8">FreightDriver v2.1.0</div>
+            <div className="text-center text-gray-400 text-sm pb-8">{appVersion}</div>
         </div>
     );
 }

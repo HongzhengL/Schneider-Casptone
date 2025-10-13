@@ -1,40 +1,48 @@
+import { useEffect, useState } from 'react';
 import { Bell, Truck } from 'lucide-react';
 import { Button } from './ui/button';
+import { fetchSuggestedLoads, ApiError } from '../services/api';
+import type { SuggestedLoad } from '../types/api';
 
 interface HomePageProps {
     onNavigate: (page: string) => void;
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
-    const suggestedLoads = [
-        {
-            id: 'load1',
-            title: 'SNI-4721: Green Bay → Milwaukee',
-            price: '$485',
-            distance: '120 mi',
-            loadType: 'Schneider Dedicated',
-            date: '10/2/2025',
-            customer: 'Walmart DC',
-        },
-        {
-            id: 'load2',
-            title: 'SNI-4722: Atlanta → Charlotte',
-            price: '$890',
-            distance: '245 mi',
-            loadType: 'Temperature Control',
-            date: '10/3/2025',
-            customer: 'Food Lion',
-        },
-        {
-            id: 'load3',
-            title: 'SNI-4723: Dallas → Phoenix',
-            price: '$1,850',
-            distance: '887 mi',
-            loadType: 'Over-the-Road',
-            date: '10/4/2025',
-            customer: 'Home Depot',
-        },
-    ];
+    const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadSuggested = async () => {
+            try {
+                const loads = await fetchSuggestedLoads();
+                if (isMounted) {
+                    setSuggestedLoads(loads);
+                }
+            } catch (err) {
+                if (!isMounted) return;
+                console.error(err);
+                setError(
+                    err instanceof ApiError
+                        ? 'Unable to load suggested assignments.'
+                        : 'Something went wrong while loading assignments.'
+                );
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadSuggested();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <div className="p-4 space-y-6">
@@ -94,29 +102,43 @@ export function HomePage({ onNavigate }: HomePageProps) {
             {/* Available Assignments Section */}
             <div className="space-y-4">
                 <h3 className="text-gray-900">Available Assignments</h3>
-                <div className="space-y-3">
-                    {suggestedLoads.map((load) => (
-                        <div
-                            key={load.id}
-                            className="bg-white rounded-lg p-4 border border-orange-200 shadow-sm"
-                        >
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-start">
-                                    <div className="text-gray-900 font-medium">{load.title}</div>
-                                    <div className="text-orange-600 font-semibold">
-                                        {load.price}
+                {isLoading && (
+                    <div className="text-sm text-gray-500">Loading upcoming assignments…</div>
+                )}
+                {error && <div className="text-sm text-red-600">{error}</div>}
+                {!isLoading && !error && (
+                    <div className="space-y-3">
+                        {suggestedLoads.length === 0 ? (
+                            <div className="text-sm text-gray-500">
+                                No suggested loads available right now. Check back soon.
+                            </div>
+                        ) : (
+                            suggestedLoads.map((load) => (
+                                <div
+                                    key={load.id}
+                                    className="bg-white rounded-lg p-4 border border-orange-200 shadow-sm"
+                                >
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div className="text-gray-900 font-medium">
+                                                {load.title}
+                                            </div>
+                                            <div className="text-orange-600 font-semibold">
+                                                {load.price}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                            {load.distance} | {load.loadType} | {load.date}
+                                        </div>
+                                        <div className="text-sm text-orange-600">
+                                            Customer: {load.customer}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="text-sm text-gray-600">
-                                    {load.distance} | {load.loadType} | {load.date}
-                                </div>
-                                <div className="text-sm text-orange-600">
-                                    Customer: {load.customer}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Schneider Network Info */}

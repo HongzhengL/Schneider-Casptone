@@ -1,74 +1,50 @@
+import { useEffect, useState } from 'react';
 import { ChevronLeft, CheckCircle, AlertCircle, Clock, Archive } from 'lucide-react';
 import { Button } from './ui/button';
+import { fetchNotices, ApiError } from '../services/api';
+import type { NoticesResponse, NoticeType } from '../types/api';
 
 interface NoticePageProps {
     onNavigate: (page: string) => void;
 }
 
 export function NoticePage({ onNavigate }: NoticePageProps) {
-    const unreadNotices = [
-        {
-            id: 'unread1',
-            title: 'New Load Match 1',
-            route: 'Madison → Chicago',
-            details: '$ 850 | 180 mi | Reefer | 9/29/2025',
-        },
-        {
-            id: 'unread2',
-            title: 'New Load Match 2',
-            route: 'Madison → New York',
-            details: '$ 5000 | 960 mi | Heavy | 9/29/2025',
-        },
-    ];
+    const [noticesData, setNoticesData] = useState<NoticesResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const readNotices = [
-        {
-            id: 'read1',
-            title: 'Load Assignment Confirmed',
-            route: 'Madison → Chicago',
-            details: '$ 750 | 150 mi | Dry van | 9/29/2025',
-            isSelected: true,
-            type: 'success',
-            time: '2 hours ago',
-        },
-        {
-            id: 'read2',
-            title: 'Rate Update Available',
-            route: 'Madison → Columbus',
-            details: '$ 2600 | 500 mi | Heavy | 10/9/2025',
-            isSelected: false,
-            type: 'info',
-            time: '1 day ago',
-        },
-        {
-            id: 'read3',
-            title: 'Delivery Confirmation Required',
-            route: 'Milwaukee → Detroit',
-            details: '$ 1200 | 280 mi | Reefer | 9/27/2025',
-            isSelected: false,
-            type: 'warning',
-            time: '2 days ago',
-        },
-    ];
+    useEffect(() => {
+        let isMounted = true;
 
-    const systemNotices = [
-        {
-            id: 'system1',
-            title: 'App Update Available',
-            message: 'Version 2.1.1 is now available with improved performance and bug fixes.',
-            type: 'info',
-            time: '3 days ago',
-        },
-        {
-            id: 'system2',
-            title: 'Scheduled Maintenance',
-            message: 'System maintenance scheduled for Oct 15, 2025 from 2:00 AM - 4:00 AM EST.',
-            type: 'warning',
-            time: '1 week ago',
-        },
-    ];
+        const loadNotices = async () => {
+            try {
+                const data = await fetchNotices();
+                if (isMounted) {
+                    setNoticesData(data);
+                }
+            } catch (err) {
+                if (!isMounted) return;
+                console.error(err);
+                setError(
+                    err instanceof ApiError
+                        ? 'Unable to load your notices.'
+                        : 'Something went wrong while loading notices.'
+                );
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
 
-    const getNoticeIcon = (type: string) => {
+        loadNotices();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const getNoticeIcon = (type: NoticeType) => {
         switch (type) {
             case 'success':
                 return <CheckCircle className="w-5 h-5 text-green-500" />;
@@ -99,20 +75,31 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
             {/* Unread Section */}
             <div className="space-y-3">
                 <h3 className="text-gray-900">Unread</h3>
-                <div className="space-y-3">
-                    {unreadNotices.map((notice) => (
-                        <div
-                            key={notice.id}
-                            className="bg-gray-100 rounded-lg p-4 border border-gray-200"
-                        >
-                            <div className="space-y-1">
-                                <div className="text-gray-900">{notice.title}</div>
-                                <div className="text-gray-700">{notice.route}</div>
-                                <div className="text-gray-700">{notice.details}</div>
+                {isLoading && (
+                    <div className="text-sm text-gray-500">Checking for new notices…</div>
+                )}
+                {error && <div className="text-sm text-red-600">{error}</div>}
+                {!isLoading && !error && (
+                    <div className="space-y-3">
+                        {(noticesData?.unread ?? []).map((notice) => (
+                            <div
+                                key={notice.id}
+                                className="bg-gray-100 rounded-lg p-4 border border-gray-200"
+                            >
+                                <div className="space-y-1">
+                                    <div className="text-gray-900">{notice.title}</div>
+                                    <div className="text-gray-700">{notice.route}</div>
+                                    <div className="text-gray-700">{notice.details}</div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                        {(noticesData?.unread?.length ?? 0) === 0 && (
+                            <div className="text-sm text-gray-500">
+                                You're all caught up. No unread notices.
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Read Section */}
@@ -125,7 +112,7 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                     </Button>
                 </div>
                 <div className="space-y-3">
-                    {readNotices.map((notice) => (
+                    {(noticesData?.read ?? []).map((notice) => (
                         <div
                             key={notice.id}
                             className={`rounded-lg p-4 ${
@@ -147,6 +134,9 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                             </div>
                         </div>
                     ))}
+                    {!isLoading && !error && (noticesData?.read?.length ?? 0) === 0 && (
+                        <div className="text-sm text-gray-500">No previous notices to display.</div>
+                    )}
                 </div>
             </div>
 
@@ -154,7 +144,7 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
             <div className="space-y-3">
                 <h3 className="text-gray-900">System Notices</h3>
                 <div className="space-y-3">
-                    {systemNotices.map((notice) => (
+                    {(noticesData?.system ?? []).map((notice) => (
                         <div
                             key={notice.id}
                             className="bg-blue-50 rounded-lg p-4 border border-blue-200"
@@ -171,6 +161,11 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                             </div>
                         </div>
                     ))}
+                    {!isLoading && !error && (noticesData?.system?.length ?? 0) === 0 && (
+                        <div className="text-sm text-gray-500">
+                            No system updates at the moment.
+                        </div>
+                    )}
                 </div>
             </div>
 

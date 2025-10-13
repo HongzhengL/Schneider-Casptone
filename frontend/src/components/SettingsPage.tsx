@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ChevronLeft,
     GripVertical,
@@ -25,12 +25,28 @@ interface Metric {
 
 interface SettingsPageProps {
     customMetrics: Metric[];
+    defaultMetrics: Metric[];
     setCustomMetrics: (metrics: Metric[]) => void;
     onNavigate: (page: string) => void;
+    isLoadingDefaults: boolean;
+    loadError: string | null;
 }
 
-export function SettingsPage({ customMetrics, setCustomMetrics, onNavigate }: SettingsPageProps) {
+export function SettingsPage({
+    customMetrics,
+    defaultMetrics,
+    setCustomMetrics,
+    onNavigate,
+    isLoadingDefaults,
+    loadError,
+}: SettingsPageProps) {
     const [localMetrics, setLocalMetrics] = useState(customMetrics);
+
+    useEffect(() => {
+        setLocalMetrics(customMetrics);
+    }, [customMetrics]);
+
+    const cloneMetrics = (metrics: Metric[]) => metrics.map((metric) => ({ ...metric }));
 
     // App Settings State
     const [notifications, setNotifications] = useState({
@@ -64,14 +80,7 @@ export function SettingsPage({ customMetrics, setCustomMetrics, onNavigate }: Se
     };
 
     const handleReset = () => {
-        const defaultMetrics = [
-            { id: 'distance', label: 'Distance', enabled: true },
-            { id: 'weight', label: 'Weight', enabled: true },
-            { id: 'loadedRpm', label: 'Loaded RPM', enabled: true },
-            { id: 'totalRpm', label: 'Est Total RPM', enabled: false },
-            { id: 'loadType', label: 'Load Type', enabled: false },
-        ];
-        setLocalMetrics(defaultMetrics);
+        setLocalMetrics(cloneMetrics(defaultMetrics));
     };
 
     return (
@@ -104,6 +113,10 @@ export function SettingsPage({ customMetrics, setCustomMetrics, onNavigate }: Se
             <Card>
                 <CardHeader>
                     <CardTitle>Available Metrics</CardTitle>
+                    {isLoadingDefaults && (
+                        <p className="text-sm text-gray-500">Loading defaults…</p>
+                    )}
+                    {loadError && <p className="text-sm text-red-600">{loadError}</p>}
                 </CardHeader>
                 <CardContent>
                     <Reorder.Group

@@ -1,20 +1,35 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Info, RotateCcw } from 'lucide-react';
+import type { AdvancedFilterValues } from '../types/api';
 
 interface AdvancedFiltersDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    value: AdvancedFilterValues;
+    onApply: (value: AdvancedFilterValues) => void;
 }
 
-export function AdvancedFiltersDialog({ open, onOpenChange }: AdvancedFiltersDialogProps) {
+export function AdvancedFiltersDialog({
+    open,
+    onOpenChange,
+    value,
+    onApply,
+}: AdvancedFiltersDialogProps) {
     const [minLoadedRpm, setMinLoadedRpm] = useState('no-min');
     const [minDistance, setMinDistance] = useState('0');
     const [maxDistance, setMaxDistance] = useState('1000+');
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
+
+    useEffect(() => {
+        setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm.toFixed(2) : 'no-min');
+        setMinDistance(value.minDistance != null ? value.minDistance.toString() : '0');
+        setMaxDistance(value.maxDistance != null ? value.maxDistance.toString() : '1000+');
+        setServiceExclusions(value.serviceExclusions);
+    }, [value, open]);
 
     const serviceExclusionOptions = [
         { id: 'twic', label: 'TWIC' },
@@ -39,7 +54,9 @@ export function AdvancedFiltersDialog({ open, onOpenChange }: AdvancedFiltersDia
 
     const handleExclusionChange = (id: string, checked: boolean) => {
         if (checked) {
-            setServiceExclusions([...serviceExclusions, id]);
+            if (!serviceExclusions.includes(id)) {
+                setServiceExclusions([...serviceExclusions, id]);
+            }
         } else {
             setServiceExclusions(serviceExclusions.filter((item) => item !== id));
         }
@@ -52,8 +69,22 @@ export function AdvancedFiltersDialog({ open, onOpenChange }: AdvancedFiltersDia
         setServiceExclusions([]);
     };
 
+    const parseNumber = (raw: string, treatZeroAsNull = true) => {
+        if (!raw || raw === 'no-min') return null;
+        if (raw === '1000+') return null;
+        const parsed = Number(raw);
+        if (Number.isNaN(parsed)) return null;
+        if (treatZeroAsNull && parsed === 0) return null;
+        return parsed;
+    };
+
     const handleAccept = () => {
-        // Here you would typically pass the filter values back to the parent component
+        onApply({
+            minLoadedRpm: parseNumber(minLoadedRpm, false),
+            minDistance: parseNumber(minDistance),
+            maxDistance: parseNumber(maxDistance, false),
+            serviceExclusions: [...serviceExclusions].sort(),
+        });
         onOpenChange(false);
     };
 
@@ -157,7 +188,7 @@ export function AdvancedFiltersDialog({ open, onOpenChange }: AdvancedFiltersDia
                                         id={option.id}
                                         checked={serviceExclusions.includes(option.id)}
                                         onCheckedChange={(checked) =>
-                                            handleExclusionChange(option.id, checked as boolean)
+                                            handleExclusionChange(option.id, checked === true)
                                         }
                                     />
                                     <label
