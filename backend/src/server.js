@@ -49,16 +49,14 @@ app.get('/api/loads/find', (req, res) => {
     const minLoaded = minLoadedRpm ? Number(minLoadedRpm) : 0;
     const minDist = minDistance ? Number(minDistance) : 0;
     const maxDist =
-        maxDistance && maxDistance !== '1000+'
-            ? Number(maxDistance)
-            : Number.POSITIVE_INFINITY;
+        maxDistance && maxDistance !== '1000+' ? Number(maxDistance) : Number.POSITIVE_INFINITY;
 
     const exclusionList =
         typeof serviceExclusions === 'string'
             ? serviceExclusions.split(',').filter(Boolean)
             : Array.isArray(serviceExclusions)
-            ? serviceExclusions.filter(Boolean)
-            : [];
+              ? serviceExclusions.filter(Boolean)
+              : [];
 
     const filtered = findLoads.filter((load) => {
         if (load.loadedRpmNum < minLoaded) return false;
@@ -72,9 +70,9 @@ app.get('/api/loads/find', (req, res) => {
             }
         }
 
-    if (confirmedOnly === 'true' && !load.confirmedAppointment) {
-        return false;
-    }
+        if (confirmedOnly === 'true' && !load.confirmedAppointment) {
+            return false;
+        }
 
         if (standardNetworkOnly === 'true' && load.distanceToOrigin > 150) {
             return false;
@@ -90,9 +88,7 @@ app.get('/api/loads/find', (req, res) => {
 
         if (destinationState) {
             const stateTarget = String(destinationState).toLowerCase();
-            const match = load.toLocation
-                .split(',')
-                .map((part) => part.trim().toLowerCase());
+            const match = load.toLocation.split(',').map((part) => part.trim().toLowerCase());
             if (!match.some((segment) => segment.startsWith(stateTarget))) {
                 return false;
             }
@@ -132,7 +128,11 @@ app.get('/api/loads/find', (req, res) => {
             const customers = Array.isArray(req.query.customer)
                 ? req.query.customer
                 : String(req.query.customer).split(',');
-            if (!customers.some((customer) => load.customer.toLowerCase() === customer.toLowerCase())) {
+            if (
+                !customers.some(
+                    (customer) => load.customer.toLowerCase() === customer.toLowerCase()
+                )
+            ) {
                 return false;
             }
         }

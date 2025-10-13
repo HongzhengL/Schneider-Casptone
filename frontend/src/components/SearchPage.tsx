@@ -199,7 +199,7 @@ export function SearchPage({
         onFiltersChange({
             ...filters,
             destination: value,
-            destinationState: selectStates ? match?.state ?? null : null,
+            destinationState: selectStates ? (match?.state ?? null) : null,
         });
     };
 
@@ -330,22 +330,22 @@ export function SearchPage({
                     </div>
                 </div>
 
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-          <Search className="w-5 h-5 text-gray-400" />
-          <select
-            value={filters.destination ?? ''}
-            onChange={(event) => handleDestinationChange(event.target.value)}
-            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
-            disabled={destinationsLoading || Boolean(destinationsError)}
-          >
-            <option value="">All destinations</option>
-            {destinations.map((option) => (
-              <option key={option.label} value={option.label}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                    <Search className="w-5 h-5 text-gray-400" />
+                    <select
+                        value={filters.destination ?? ''}
+                        onChange={(event) => handleDestinationChange(event.target.value)}
+                        className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                        disabled={destinationsLoading || Boolean(destinationsError)}
+                    >
+                        <option value="">All destinations</option>
+                        {destinations.map((option) => (
+                            <option key={option.label} value={option.label}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 {destinationsLoading && (
                     <p className="text-xs text-gray-500">Loading destinations…</p>
                 )}
