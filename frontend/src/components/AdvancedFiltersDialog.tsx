@@ -23,6 +23,18 @@ export function AdvancedFiltersDialog({
     const [minDistance, setMinDistance] = useState('0');
     const [maxDistance, setMaxDistance] = useState('1000+');
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
+    
+    // Helpers for distance comparisons (UI-only semantics)
+    const parseMinDistanceForCompare = (raw: string): number => {
+        const n = Number(raw);
+        return Number.isNaN(n) ? 0 : n; // treat "0" as 0 for comparison
+    };
+
+    const parseMaxDistanceForCompare = (raw: string): number => {
+        if (raw === '1000+') return Number.POSITIVE_INFINITY;
+        const n = Number(raw);
+        return Number.isNaN(n) ? Number.POSITIVE_INFINITY : n;
+    };
 
     useEffect(() => {
         setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm.toFixed(2) : 'no-min');
@@ -79,14 +91,33 @@ export function AdvancedFiltersDialog({
     };
 
     const handleAccept = () => {
+        // Enforce minDistance <= maxDistance at accept time
+        const minCompare = parseMinDistanceForCompare(minDistance);
+        const maxCompare = parseMaxDistanceForCompare(maxDistance);
+        const adjustedMax =
+            maxCompare !== Number.POSITIVE_INFINITY && minCompare > maxCompare
+                ? '1000+'
+                : maxDistance;
+
         onApply({
             minLoadedRpm: parseNumber(minLoadedRpm, false),
             minDistance: parseNumber(minDistance),
-            maxDistance: parseNumber(maxDistance, false),
+            maxDistance: parseNumber(adjustedMax, false),
             serviceExclusions: [...serviceExclusions].sort(),
         });
         onOpenChange(false);
     };
+
+    // Auto-correct invalid state if user raises min above current max
+    useEffect(() => {
+        const minCompare = parseMinDistanceForCompare(minDistance);
+        const maxCompare = parseMaxDistanceForCompare(maxDistance);
+        if (maxCompare !== Number.POSITIVE_INFINITY && minCompare > maxCompare) {
+            setMaxDistance('1000+');
+        }
+        // Only react to distance changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [minDistance, maxDistance]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,14 +195,17 @@ export function AdvancedFiltersDialog({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="100">100</SelectItem>
-                                        <SelectItem value="200">200</SelectItem>
-                                        <SelectItem value="300">300</SelectItem>
-                                        <SelectItem value="400">400</SelectItem>
-                                        <SelectItem value="500">500</SelectItem>
-                                        <SelectItem value="750">750</SelectItem>
-                                        <SelectItem value="1000">1000</SelectItem>
-                                        <SelectItem value="1000+">1000+</SelectItem>
+                                        {['100', '200', '300', '400', '500', '750', '1000', '1000+'].map(
+                                            (opt) => {
+                                                const minCompare = parseMinDistanceForCompare(minDistance);
+                                                const isDisabled = opt !== '1000+' && Number(opt) < minCompare;
+                                                return (
+                                                    <SelectItem key={opt} value={opt} disabled={isDisabled}>
+                                                        {opt}
+                                                    </SelectItem>
+                                                );
+                                            }
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
