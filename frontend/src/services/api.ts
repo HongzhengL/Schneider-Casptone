@@ -39,8 +39,21 @@ async function request<T>(path: string, init?: globalThis.RequestInit): Promise<
     return response.json() as Promise<T>;
 }
 
+type SuggestedLoadsResponse = SuggestedLoad[] | { suggestedLoads?: SuggestedLoad[] };
+
 export async function fetchSuggestedLoads(): Promise<SuggestedLoad[]> {
-    return request<SuggestedLoad[]>('/loads/suggested');
+    const data = await request<SuggestedLoadsResponse>('/loads/suggested');
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (data && Array.isArray(data.suggestedLoads)) {
+        return data.suggestedLoads;
+    }
+
+    console.warn('Unexpected response format for suggested loads', data);
+    throw new ApiError('Unexpected response format while loading suggested assignments.', 500);
 }
 
 export async function fetchNotices(): Promise<NoticesResponse> {
