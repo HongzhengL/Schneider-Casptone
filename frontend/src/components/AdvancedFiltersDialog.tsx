@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
+import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Info, RotateCcw } from 'lucide-react';
 import type { AdvancedFilterValues } from '../types/api';
@@ -132,6 +133,27 @@ export function AdvancedFiltersDialog({
                         Configure advanced filtering options for load search including minimum RPM,
                         distance range, and service exclusions.
                     </DialogDescription>
+                    {(() => {
+                        const chips: string[] = [];
+                        if (minLoadedRpm != null) chips.push(`Min RPM $${minLoadedRpm.toFixed(2)}`);
+                        if (minDistance > 0) chips.push(`Min ${minDistance} mi`);
+                        if (Number.isFinite(maxDistance)) chips.push(`Max ${maxDistance} mi`);
+                        if (serviceExclusions.length > 0)
+                            chips.push(`${serviceExclusions.length} exclusions`);
+                        if (chips.length === 0) return null;
+                        return (
+                            <div className="mt-1 space-y-1">
+                                <div className="text-xs text-gray-500">Active: {chips.length}</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {chips.map((c) => (
+                                        <Badge key={c} variant="secondary">
+                                            {c}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </DialogHeader>
 
                 <div className="space-y-6 pt-4">
