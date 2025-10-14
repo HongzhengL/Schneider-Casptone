@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
+import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Info, RotateCcw } from 'lucide-react';
 import type { AdvancedFilterValues } from '../types/api';
@@ -23,6 +24,7 @@ export function AdvancedFiltersDialog({
     const [minDistance, setMinDistance] = useState<number>(0);
     const [maxDistance, setMaxDistance] = useState<number>(Number.POSITIVE_INFINITY);
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
+    const [exclusionQuery, setExclusionQuery] = useState('');
 
     useEffect(() => {
         setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm : null);
@@ -52,6 +54,14 @@ export function AdvancedFiltersDialog({
         { id: 'drop-relay', label: 'DROP RELAY' },
     ];
 
+    const filteredExclusionOptions = useMemo(() => {
+        const q = exclusionQuery.trim().toLowerCase();
+        if (!q) return serviceExclusionOptions;
+        return serviceExclusionOptions.filter(
+            (o) => o.label.toLowerCase().includes(q) || o.id.toLowerCase().includes(q)
+        );
+    }, [exclusionQuery]);
+
     const handleExclusionChange = (id: string, checked: boolean) => {
         if (checked) {
             if (!serviceExclusions.includes(id)) {
@@ -60,6 +70,11 @@ export function AdvancedFiltersDialog({
         } else {
             setServiceExclusions(serviceExclusions.filter((item) => item !== id));
         }
+    };
+
+    const handleClearAllFiltered = () => {
+        const ids = new Set(filteredExclusionOptions.map((o) => o.id));
+        setServiceExclusions(serviceExclusions.filter((id) => !ids.has(id)));
     };
 
     const handleReset = () => {
@@ -200,8 +215,19 @@ export function AdvancedFiltersDialog({
                     {/* Service Exclusion */}
                     <div className="space-y-4">
                         <label className="text-lg">Service Exclusion</label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={exclusionQuery}
+                                onChange={(e) => setExclusionQuery(e.target.value)}
+                                placeholder="Search exclusions..."
+                                className="flex-1"
+                            />
+                            <Button variant="outline" size="sm" onClick={handleClearAllFiltered}>
+                                Clear All
+                            </Button>
+                        </div>
                         <div className="grid grid-cols-3 gap-x-4 gap-y-3">
-                            {serviceExclusionOptions.map((option) => (
+                            {filteredExclusionOptions.map((option) => (
                                 <div key={option.id} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={option.id}
