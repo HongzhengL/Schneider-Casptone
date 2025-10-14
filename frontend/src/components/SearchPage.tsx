@@ -58,6 +58,9 @@ export function SearchPage({
     const [destinations, setDestinations] = useState<DestinationOption[]>([]);
     const [destinationsLoading, setDestinationsLoading] = useState(true);
     const [destinationsError, setDestinationsError] = useState<string | null>(null);
+    const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
+    const [destOpen, setDestOpen] = useState(false);
+    const [destHighlighted, setDestHighlighted] = useState(0);
 
     const uiDefaultRanges = useMemo(() => {
         const today = new Date();
@@ -105,6 +108,14 @@ export function SearchPage({
             Array.from(new Set(destinations.map((option) => option.state).filter(Boolean))).sort(),
         [destinations]
     );
+
+    const filteredDestinations = useMemo(() => {
+        const q = destinationQuery.trim().toLowerCase();
+        if (!q) return destinations;
+        return destinations.filter((o) =>
+            [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
+        );
+    }, [destinations, destinationQuery]);
 
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
@@ -202,6 +213,22 @@ export function SearchPage({
             destinationState: selectStates ? (match?.state ?? null) : null,
         });
     };
+
+    const selectDestination = (opt: DestinationOption | null) => {
+        if (!opt) {
+            setDestinationQuery('');
+            handleDestinationChange('');
+            setDestOpen(false);
+            return;
+        }
+        setDestinationQuery(opt.label);
+        handleDestinationChange(opt.label);
+        setDestOpen(false);
+    };
+
+    useEffect(() => {
+        setDestinationQuery(filters.destination ?? '');
+    }, [filters.destination]);
 
     const handleStateChange = (state: string) => {
         onFiltersChange({
@@ -330,21 +357,96 @@ export function SearchPage({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                    <Search className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={filters.destination ?? ''}
-                        onChange={(event) => handleDestinationChange(event.target.value)}
-                        className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
-                        disabled={destinationsLoading || Boolean(destinationsError)}
-                    >
-                        <option value="">All destinations</option>
-                        {destinations.map((option) => (
-                            <option key={option.label} value={option.label}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                <div className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-center gap-3">
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            role="combobox"
+                            aria-expanded={destOpen}
+                            aria-controls="destinations-listbox"
+                            aria-activedescendant={
+                                destOpen && filteredDestinations[destHighlighted]
+                                    ? `dest-option-${destHighlighted}`
+                                    : undefined
+                            }
+                            aria-autocomplete="list"
+                            value={destinationQuery}
+                            onChange={(e) => {
+                                setDestinationQuery(e.target.value);
+                                setDestOpen(true);
+                                setDestHighlighted(0);
+                            }}
+                            onFocus={() => setDestOpen(true)}
+                            onKeyDown={(e) => {
+                                if (!filteredDestinations.length) return;
+                                if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setDestOpen(true);
+                                    setDestHighlighted((i) => (i + 1) % filteredDestinations.length);
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setDestOpen(true);
+                                    setDestHighlighted((i) =>
+                                        (i - 1 + filteredDestinations.length) % filteredDestinations.length
+                                    );
+                                } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const opt = filteredDestinations[destHighlighted];
+                                    if (opt) selectDestination(opt);
+                                } else if (e.key === 'Escape') {
+                                    setDestOpen(false);
+                                }
+                            }}
+                            placeholder={
+                                destinationsLoading
+                                    ? 'Loading destinations...'
+                                    : destinationsError
+                                    ? 'Unable to load destinations'
+                                    : 'Search destinations'
+                            }
+                            disabled={destinationsLoading || Boolean(destinationsError)}
+                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                        />
+                        {destinationQuery && !destinationsLoading && !destinationsError && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => selectDestination(null)}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    {destOpen && filteredDestinations.length > 0 && (
+                        <div
+                            id="destinations-listbox"
+                            role="listbox"
+                            className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
+                        >
+                            {filteredDestinations.map((option, idx) => (
+                                <div
+                                    key={option.label}
+                                    id={`dest-option-${idx}`}
+                                    role="option"
+                                    aria-selected={idx === destHighlighted}
+                                    className={`px-3 py-2 text-sm cursor-pointer ${
+                                        idx === destHighlighted
+                                            ? 'bg-orange-50 text-orange-700'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                    onMouseEnter={() => setDestHighlighted(idx)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        selectDestination(option);
+                                    }}
+                                >
+                                    {option.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 {destinationsLoading && (
                     <p className="text-xs text-gray-500">Loading destinations…</p>
