@@ -2,6 +2,7 @@
   "name": "schneider-capstone-backend",
   "version": "0.1.0",
   "description": "Starter Express backend for the CS 620 Schneider Capstone Project - Team 2",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "nodemon --watch src --ext js --exec node src/server.js",
@@ -16,11 +17,12 @@
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
-    "morgan": "^1.10.0"
+    "express-validator": "^7.2.1",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.9"
   }
 }
