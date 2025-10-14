@@ -19,27 +19,15 @@ export function AdvancedFiltersDialog({
     value,
     onApply,
 }: AdvancedFiltersDialogProps) {
-    const [minLoadedRpm, setMinLoadedRpm] = useState('no-min');
-    const [minDistance, setMinDistance] = useState('0');
-    const [maxDistance, setMaxDistance] = useState('1000+');
+    const [minLoadedRpm, setMinLoadedRpm] = useState<number | null>(null);
+    const [minDistance, setMinDistance] = useState<number>(0);
+    const [maxDistance, setMaxDistance] = useState<number>(Number.POSITIVE_INFINITY);
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
-    
-    // Helpers for distance comparisons (UI-only semantics)
-    const parseMinDistanceForCompare = (raw: string): number => {
-        const n = Number(raw);
-        return Number.isNaN(n) ? 0 : n; // treat "0" as 0 for comparison
-    };
-
-    const parseMaxDistanceForCompare = (raw: string): number => {
-        if (raw === '1000+') return Number.POSITIVE_INFINITY;
-        const n = Number(raw);
-        return Number.isNaN(n) ? Number.POSITIVE_INFINITY : n;
-    };
 
     useEffect(() => {
-        setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm.toFixed(2) : 'no-min');
-        setMinDistance(value.minDistance != null ? value.minDistance.toString() : '0');
-        setMaxDistance(value.maxDistance != null ? value.maxDistance.toString() : '1000+');
+        setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm : null);
+        setMinDistance(value.minDistance != null ? value.minDistance : 0);
+        setMaxDistance(value.maxDistance != null ? value.maxDistance : Number.POSITIVE_INFINITY);
         setServiceExclusions(value.serviceExclusions);
     }, [value, open]);
 
@@ -75,34 +63,23 @@ export function AdvancedFiltersDialog({
     };
 
     const handleReset = () => {
-        setMinLoadedRpm('no-min');
-        setMinDistance('0');
-        setMaxDistance('1000+');
+        setMinLoadedRpm(null);
+        setMinDistance(0);
+        setMaxDistance(Number.POSITIVE_INFINITY);
         setServiceExclusions([]);
-    };
-
-    const parseNumber = (raw: string, treatZeroAsNull = true) => {
-        if (!raw || raw === 'no-min') return null;
-        if (raw === '1000+') return null;
-        const parsed = Number(raw);
-        if (Number.isNaN(parsed)) return null;
-        if (treatZeroAsNull && parsed === 0) return null;
-        return parsed;
     };
 
     const handleAccept = () => {
         // Enforce minDistance <= maxDistance at accept time
-        const minCompare = parseMinDistanceForCompare(minDistance);
-        const maxCompare = parseMaxDistanceForCompare(maxDistance);
-        const adjustedMax =
-            maxCompare !== Number.POSITIVE_INFINITY && minCompare > maxCompare
-                ? '1000+'
+        const adjustedMaxNumber =
+            Number.isFinite(maxDistance) && minDistance > (maxDistance as number)
+                ? Number.POSITIVE_INFINITY
                 : maxDistance;
 
         onApply({
-            minLoadedRpm: parseNumber(minLoadedRpm, false),
-            minDistance: parseNumber(minDistance),
-            maxDistance: parseNumber(adjustedMax, false),
+            minLoadedRpm: minLoadedRpm,
+            minDistance: minDistance === 0 ? null : minDistance,
+            maxDistance: adjustedMaxNumber === Number.POSITIVE_INFINITY ? null : adjustedMaxNumber,
             serviceExclusions: [...serviceExclusions].sort(),
         });
         onOpenChange(false);
@@ -110,10 +87,8 @@ export function AdvancedFiltersDialog({
 
     // Auto-correct invalid state if user raises min above current max
     useEffect(() => {
-        const minCompare = parseMinDistanceForCompare(minDistance);
-        const maxCompare = parseMaxDistanceForCompare(maxDistance);
-        if (maxCompare !== Number.POSITIVE_INFINITY && minCompare > maxCompare) {
-            setMaxDistance('1000+');
+        if (Number.isFinite(maxDistance) && minDistance > (maxDistance as number)) {
+            setMaxDistance(Number.POSITIVE_INFINITY);
         }
         // Only react to distance changes
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,7 +123,10 @@ export function AdvancedFiltersDialog({
                     {/* Min Loaded RPM */}
                     <div className="space-y-2">
                         <label className="text-lg">Min Loaded RPM</label>
-                        <Select value={minLoadedRpm} onValueChange={setMinLoadedRpm}>
+                        <Select
+                            value={minLoadedRpm == null ? 'no-min' : minLoadedRpm.toFixed(2)}
+                            onValueChange={(v) => setMinLoadedRpm(v === 'no-min' ? null : Number(v))}
+                        >
                             <SelectTrigger className="w-full">
                                 <SelectValue />
                             </SelectTrigger>
@@ -173,7 +151,10 @@ export function AdvancedFiltersDialog({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm text-gray-600">Minimum</label>
-                                <Select value={minDistance} onValueChange={setMinDistance}>
+                                <Select
+                                    value={String(minDistance)}
+                                    onValueChange={(v) => setMinDistance(Number(v))}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -190,15 +171,19 @@ export function AdvancedFiltersDialog({
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm text-gray-600">Maximum</label>
-                                <Select value={maxDistance} onValueChange={setMaxDistance}>
+                                <Select
+                                    value={Number.isFinite(maxDistance) ? String(maxDistance) : '1000+'}
+                                    onValueChange={(v) =>
+                                        setMaxDistance(v === '1000+' ? Number.POSITIVE_INFINITY : Number(v))
+                                    }
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {['100', '200', '300', '400', '500', '750', '1000', '1000+'].map(
                                             (opt) => {
-                                                const minCompare = parseMinDistanceForCompare(minDistance);
-                                                const isDisabled = opt !== '1000+' && Number(opt) < minCompare;
+                                                const isDisabled = opt !== '1000+' && Number(opt) < minDistance;
                                                 return (
                                                     <SelectItem key={opt} value={opt} disabled={isDisabled}>
                                                         {opt}
