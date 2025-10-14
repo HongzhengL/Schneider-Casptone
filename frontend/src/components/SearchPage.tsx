@@ -129,6 +129,35 @@ export function SearchPage({
 
     const destinationRadiusValue = filters.destinationRadius ?? 500;
 
+    // Preset date ranges: helpers to quickly set from/to
+    const presetDefs = [
+        { label: 'Today', fromOffset: 0, toOffset: 0 },
+        { label: 'Next 3 days', fromOffset: 0, toOffset: 3 },
+        { label: 'Next 7 days', fromOffset: 0, toOffset: 7 },
+    ] as const;
+
+    const applyPickupPreset = (fromOffset: number, toOffset: number) => {
+        const today = new Date();
+        const from = addDays(today, fromOffset);
+        const to = addDays(today, toOffset);
+        onFiltersChange({
+            ...filters,
+            pickupDateFrom: dateToInputValue(from),
+            pickupDateTo: dateToInputValue(to),
+        });
+    };
+
+    const applyDropPreset = (fromOffset: number, toOffset: number) => {
+        const today = new Date();
+        const from = addDays(today, fromOffset);
+        const to = addDays(today, toOffset);
+        onFiltersChange({
+            ...filters,
+            dropDateFrom: dateToInputValue(from),
+            dropDateTo: dateToInputValue(to),
+        });
+    };
+
     const handlePickupChange = (key: 'from' | 'to', value: string) => {
         const next = enforceRange(
             key === 'from' ? value : pickupRange.from,
@@ -305,10 +334,24 @@ export function SearchPage({
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-gray-600">Pick-up Date</h3>
-                    <span className="text-sm text-gray-500">
-                        {formatDate(pickupRange.from).dateStr} –{' '}
-                        {formatDate(pickupRange.to).dateStr}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                            {formatDate(pickupRange.from).dateStr} – {formatDate(pickupRange.to).dateStr}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                            {presetDefs.map((p) => (
+                                <Button
+                                    key={`pickup-${p.label}`}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs px-2 py-1"
+                                    onClick={() => applyPickupPreset(p.fromOffset, p.toOffset)}
+                                >
+                                    {p.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 p-4 bg-white rounded-lg border hover:border-orange-300 transition-colors">
                     <div className="space-y-2">
@@ -492,9 +535,24 @@ export function SearchPage({
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-gray-600">Drop Date</h3>
-                    <span className="text-sm text-gray-500">
-                        {formatDate(dropRange.from).dateStr} – {formatDate(dropRange.to).dateStr}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                            {formatDate(dropRange.from).dateStr} – {formatDate(dropRange.to).dateStr}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                            {presetDefs.map((p) => (
+                                <Button
+                                    key={`drop-${p.label}`}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs px-2 py-1"
+                                    onClick={() => applyDropPreset(p.fromOffset, p.toOffset)}
+                                >
+                                    {p.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 p-4 bg-white rounded-lg border hover:border-orange-300 transition-colors">
                     <div className="space-y-2">
