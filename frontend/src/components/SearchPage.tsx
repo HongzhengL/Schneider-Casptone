@@ -61,6 +61,7 @@ export function SearchPage({
     const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
     const [destOpen, setDestOpen] = useState(false);
     const [destHighlighted, setDestHighlighted] = useState(0);
+    const [destMaxItems, setDestMaxItems] = useState(10);
 
     const uiDefaultRanges = useMemo(() => {
         const today = new Date();
@@ -116,6 +117,17 @@ export function SearchPage({
             [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
         );
     }, [destinations, destinationQuery]);
+
+    const visibleDestinations = useMemo(() => {
+        return filteredDestinations.slice(0, destMaxItems);
+    }, [filteredDestinations, destMaxItems]);
+
+    useEffect(() => {
+        // Clamp highlighted index to visible items
+        if (destHighlighted >= visibleDestinations.length) {
+            setDestHighlighted(visibleDestinations.length > 0 ? visibleDestinations.length - 1 : 0);
+        }
+    }, [visibleDestinations.length]);
 
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
@@ -410,7 +422,7 @@ export function SearchPage({
                             aria-expanded={destOpen}
                             aria-controls="destinations-listbox"
                             aria-activedescendant={
-                                destOpen && filteredDestinations[destHighlighted]
+                                destOpen && visibleDestinations[destHighlighted]
                                     ? `dest-option-${destHighlighted}`
                                     : undefined
                             }
@@ -420,27 +432,22 @@ export function SearchPage({
                                 setDestinationQuery(e.target.value);
                                 setDestOpen(true);
                                 setDestHighlighted(0);
+                                setDestMaxItems(10);
                             }}
                             onFocus={() => setDestOpen(true)}
                             onKeyDown={(e) => {
-                                if (!filteredDestinations.length) return;
+                                if (!visibleDestinations.length) return;
                                 if (e.key === 'ArrowDown') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted(
-                                        (i) => (i + 1) % filteredDestinations.length
-                                    );
+                                    setDestHighlighted((i) => (i + 1) % visibleDestinations.length);
                                 } else if (e.key === 'ArrowUp') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted(
-                                        (i) =>
-                                            (i - 1 + filteredDestinations.length) %
-                                            filteredDestinations.length
-                                    );
+                                    setDestHighlighted((i) => (i - 1 + visibleDestinations.length) % visibleDestinations.length);
                                 } else if (e.key === 'Enter') {
                                     e.preventDefault();
-                                    const opt = filteredDestinations[destHighlighted];
+                                    const opt = visibleDestinations[destHighlighted];
                                     if (opt) selectDestination(opt);
                                 } else if (e.key === 'Escape') {
                                     setDestOpen(false);
@@ -473,7 +480,7 @@ export function SearchPage({
                             role="listbox"
                             className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
                         >
-                            {filteredDestinations.map((option, idx) => (
+                            {visibleDestinations.map((option, idx) => (
                                 <div
                                     key={option.label}
                                     id={`dest-option-${idx}`}
@@ -493,6 +500,24 @@ export function SearchPage({
                                     {option.label}
                                 </div>
                             ))}
+                            {filteredDestinations.length > destMaxItems && (
+                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600">
+                                    <span>
+                                        Showing {visibleDestinations.length} of {filteredDestinations.length}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setDestMaxItems((n) => n + 10);
+                                        }}
+                                    >
+                                        Show more
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
