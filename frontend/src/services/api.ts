@@ -9,6 +9,8 @@ import type {
     Metric,
     NoticesResponse,
     SuggestedLoad,
+    Profile,
+    ProfileInput,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
@@ -156,3 +158,38 @@ export async function fetchDestinations(): Promise<DestinationOption[]> {
 }
 
 export { ApiError };
+
+// Profiles API
+export async function fetchProfiles(): Promise<Profile[]> {
+    return request<Profile[]>('/profiles');
+}
+
+export async function fetchProfile(id: string): Promise<Profile> {
+    return request<Profile>(`/profiles/${encodeURIComponent(id)}`);
+}
+
+export async function createProfile(input: ProfileInput): Promise<Profile> {
+    return request<Profile>('/profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(input),
+    });
+}
+
+export async function updateProfile(id: string, input: ProfileInput): Promise<Profile> {
+    return request<Profile>(`/profiles/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(input),
+    });
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+    await request<void>(`/profiles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// Helper that returns the filters from a profile so callers can apply them to UI state
+export async function applyProfile(id: string): Promise<LoadSearchFilters> {
+    const profile = await fetchProfile(id);
+    return profile.filters;
+}

@@ -175,3 +175,17 @@ export interface DestinationOption {
     city: string;
     state: string;
 }
+
+// Saved search profiles
+export interface Profile {
+    id: string;
+    name: string;
+    filters: LoadSearchFilters;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface ProfileInput {
+    name: string;
+    filters: LoadSearchFilters;
+}

@@ -8,8 +8,8 @@ import { SettingsPage } from './components/SettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
-import { fetchCustomMetrics, ApiError } from './services/api';
-import type { LoadSearchFilters, Metric } from './types/api';
+import { fetchCustomMetrics, ApiError, fetchProfiles, createProfile, updateProfile, deleteProfile as apiDeleteProfile, applyProfile as apiApplyProfile } from './services/api';
+import type { LoadSearchFilters, Metric, Profile } from './types/api';
 
 const fallbackMetrics: Metric[] = [
     { id: 'distance', label: 'Distance', enabled: true },
@@ -43,6 +43,9 @@ export default function App() {
     const [defaultMetrics, setDefaultMetrics] = useState<Metric[]>(fallbackMetrics);
     const [metricsError, setMetricsError] = useState<string | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(true);
+    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [profilesError, setProfilesError] = useState<string | null>(null);
+    const [profilesLoading, setProfilesLoading] = useState(true);
     const [loadFilters, setLoadFilters] = useState<LoadSearchFilters>(() =>
         createDefaultLoadFilters()
     );
@@ -79,6 +82,53 @@ export default function App() {
             isMounted = false;
         };
     }, []);
+
+    // Load saved profiles (search + advanced criteria)
+    useEffect(() => {
+        let isMounted = true;
+        const loadProfiles = async () => {
+            try {
+                const list = await fetchProfiles();
+                if (!isMounted) return;
+                setProfiles(list);
+            } catch (error) {
+                if (!isMounted) return;
+                console.error(error);
+                setProfilesError('Unable to load profiles.');
+                setProfiles([]);
+            } finally {
+                if (isMounted) setProfilesLoading(false);
+            }
+        };
+        loadProfiles();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Profile management helpers (can be passed to pages later)
+    const handleCreateProfile = async (name: string) => {
+        const newProfile = await createProfile({ name, filters: loadFilters });
+        setProfiles((prev) => [newProfile, ...prev]);
+        return newProfile;
+    };
+
+    const handleUpdateProfile = async (id: string, name: string, filters?: LoadSearchFilters) => {
+        const next = await updateProfile(id, { name, filters: filters ?? loadFilters });
+        setProfiles((prev) => prev.map((p) => (p.id === id ? next : p)));
+        return next;
+    };
+
+    const handleDeleteProfile = async (id: string) => {
+        await apiDeleteProfile(id);
+        setProfiles((prev) => prev.filter((p) => p.id !== id));
+    };
+
+    const handleApplyProfile = async (id: string) => {
+        const filters = await apiApplyProfile(id);
+        setLoadFilters(filters);
+        return filters;
+    };
 
     const renderCurrentPage = () => {
         switch (currentPage) {
