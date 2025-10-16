@@ -1,18 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Truck, SlidersHorizontal, Search } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { fetchDestinations } from '../services/api';
-import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters } from '../types/api';
+import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters, Profile } from '../types/api';
 
 interface SearchPageProps {
     onNavigate: (page: string) => void;
     filters: LoadSearchFilters;
     onFiltersChange: (filters: LoadSearchFilters) => void;
     createDefaultFilters: () => LoadSearchFilters;
+    // Profiles management (optional)
+    profiles?: Profile[];
+    profilesLoading?: boolean;
+    profilesError?: string | null;
+    onCreateProfile?: (name: string) => Promise<Profile>;
+    onUpdateProfile?: (
+        id: string,
+        name: string,
+        filters?: LoadSearchFilters
+    ) => Promise<Profile>;
+    onDeleteProfile?: (id: string) => Promise<void>;
+    onApplyProfile?: (id: string) => Promise<LoadSearchFilters>;
 }
 
 const formatDate = (value: string) => {
@@ -51,6 +64,13 @@ export function SearchPage({
     filters,
     onFiltersChange,
     createDefaultFilters,
+    profiles = [],
+    profilesLoading = false,
+    profilesError = null,
+    onCreateProfile,
+    onUpdateProfile,
+    onDeleteProfile,
+    onApplyProfile,
 }: SearchPageProps) {
     const [originRadius, setOriginRadius] = useState(500);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -61,7 +81,14 @@ export function SearchPage({
     const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
     const [destOpen, setDestOpen] = useState(false);
     const [destHighlighted, setDestHighlighted] = useState(0);
-    const [destMaxItems, setDestMaxItems] = useState(10);
+    const DEST_PAGE_SIZE = 10;
+    const [destPage, setDestPage] = useState(0);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const [showProfilesPanel, setShowProfilesPanel] = useState(false);
+    // Profiles UI state
+    const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+    const [newProfileName, setNewProfileName] = useState('');
+    const [renameValue, setRenameValue] = useState('');
 
     const uiDefaultRanges = useMemo(() => {
         const today = new Date();
@@ -80,6 +107,14 @@ export function SearchPage({
     useEffect(() => {
         setSelectStates(Boolean(filters.destinationState));
     }, [filters.destinationState]);
+
+    // When profiles load, if none selected, keep null. If an applied profile changed externally,
+    // attempt to keep rename input in sync.
+    useEffect(() => {
+        if (!activeProfileId) return;
+        const p = profiles.find((x) => x.id === activeProfileId);
+        if (p) setRenameValue(p.name);
+    }, [profiles, activeProfileId]);
 
     useEffect(() => {
         let mounted = true;
@@ -119,8 +154,10 @@ export function SearchPage({
     }, [destinations, destinationQuery]);
 
     const visibleDestinations = useMemo(() => {
-        return filteredDestinations.slice(0, destMaxItems);
-    }, [filteredDestinations, destMaxItems]);
+        const start = destPage * DEST_PAGE_SIZE;
+        const end = start + DEST_PAGE_SIZE;
+        return filteredDestinations.slice(start, end);
+    }, [filteredDestinations, destPage]);
 
     useEffect(() => {
         // Clamp highlighted index to visible items
@@ -128,6 +165,21 @@ export function SearchPage({
             setDestHighlighted(visibleDestinations.length > 0 ? visibleDestinations.length - 1 : 0);
         }
     }, [visibleDestinations.length]);
+
+    const totalDestPages = useMemo(
+        () => Math.max(1, Math.ceil(filteredDestinations.length / DEST_PAGE_SIZE)),
+        [filteredDestinations.length]
+    );
+
+    const goToNextPage = () => {
+        setDestPage((p) => (p + 1 < totalDestPages ? p + 1 : p));
+        setDestHighlighted(0);
+    };
+
+    const goToPrevPage = () => {
+        setDestPage((p) => (p - 1 >= 0 ? p - 1 : p));
+        setDestHighlighted(0);
+    };
 
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
@@ -310,6 +362,29 @@ export function SearchPage({
         activeAdvancedFilters ? ` (${activeAdvancedFilters})` : ''
     }`;
 
+    // Compare current filters to a given profile's filters
+    const areFiltersEqual = (a: LoadSearchFilters, b: LoadSearchFilters) => {
+        const arrEq = (x: string[], y: string[]) => x.length === y.length && x.every((v, i) => v === y[i]);
+        return (
+            a.minLoadedRpm === b.minLoadedRpm &&
+            a.minDistance === b.minDistance &&
+            a.maxDistance === b.maxDistance &&
+            arrEq(a.serviceExclusions, b.serviceExclusions) &&
+            a.confirmedOnly === b.confirmedOnly &&
+            a.standardNetworkOnly === b.standardNetworkOnly &&
+            a.destination === b.destination &&
+            a.destinationState === b.destinationState &&
+            a.destinationRadius === b.destinationRadius &&
+            a.pickupDateFrom === b.pickupDateFrom &&
+            a.pickupDateTo === b.pickupDateTo &&
+            a.dropDateFrom === b.dropDateFrom &&
+            a.dropDateTo === b.dropDateTo
+        );
+    };
+
+    const activeProfile = activeProfileId ? profiles.find((p) => p.id === activeProfileId) ?? null : null;
+    const isProfileModified = activeProfile ? !areFiltersEqual(filters, activeProfile.filters) : false;
+
     return (
         <div className="p-4 space-y-6">
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg -mx-4 -mt-4 mb-6">
@@ -327,6 +402,7 @@ export function SearchPage({
                 </div>
                 <p className="text-orange-100 text-sm mt-1">Find your next assignment</p>
             </div>
+
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -432,7 +508,7 @@ export function SearchPage({
                                 setDestinationQuery(e.target.value);
                                 setDestOpen(true);
                                 setDestHighlighted(0);
-                                setDestMaxItems(10);
+                                setDestPage(0);
                             }}
                             onFocus={() => setDestOpen(true)}
                             onKeyDown={(e) => {
@@ -479,6 +555,62 @@ export function SearchPage({
                             id="destinations-listbox"
                             role="listbox"
                             className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
+                            onTouchStart={(e) => {
+                                const t = e.changedTouches[0];
+                                touchStartRef.current = { x: t.clientX, y: t.clientY };
+                            }}
+                            onTouchEnd={(e) => {
+                                const start = touchStartRef.current;
+                                touchStartRef.current = null;
+                                if (!start) return;
+                                const t = e.changedTouches[0];
+                                const dy = t.clientY - start.y;
+                                const dx = t.clientX - start.x;
+                                const absX = Math.abs(dx);
+                                const absY = Math.abs(dy);
+                                const V_THRESH = 30;
+                                // Vertical swipe: move selection (and select)
+                                if (absY > V_THRESH && absY > absX * 1.2) {
+                                    if (dy < 0) {
+                                        // swipe up → next item
+                                        if (visibleDestinations.length === 0) return;
+                                        if (destHighlighted < visibleDestinations.length - 1) {
+                                            const idx = destHighlighted + 1;
+                                            setDestHighlighted(idx);
+                                            selectDestination(visibleDestinations[idx]);
+                                        } else if (destPage + 1 < totalDestPages) {
+                                            goToNextPage();
+                                            // after page change, select first of next page
+                                            setTimeout(() => {
+                                                selectDestination(
+                                                    visibleDestinations[0] ?? null
+                                                );
+                                            }, 0);
+                                        }
+                                    } else {
+                                        // swipe down → prev item
+                                        if (visibleDestinations.length === 0) return;
+                                        if (destHighlighted > 0) {
+                                            const idx = destHighlighted - 1;
+                                            setDestHighlighted(idx);
+                                            selectDestination(visibleDestinations[idx]);
+                                        } else if (destPage > 0) {
+                                            goToPrevPage();
+                                            // after page change, select last of prev page
+                                            setTimeout(() => {
+                                                const lastIdx = Math.min(
+                                                    DEST_PAGE_SIZE - 1,
+                                                    visibleDestinations.length - 1
+                                                );
+                                                selectDestination(
+                                                    visibleDestinations[lastIdx] ?? null
+                                                );
+                                            }, 0);
+                                        }
+                                    }
+                                    return;
+                                }
+                            }}
                         >
                             {visibleDestinations.map((option, idx) => (
                                 <div
@@ -500,22 +632,35 @@ export function SearchPage({
                                     {option.label}
                                 </div>
                             ))}
-                            {filteredDestinations.length > destMaxItems && (
-                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600">
-                                    <span>
-                                        Showing {visibleDestinations.length} of {filteredDestinations.length}
-                                    </span>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            setDestMaxItems((n) => n + 10);
-                                        }}
-                                    >
-                                        Show more
-                                    </Button>
+                            {filteredDestinations.length > DEST_PAGE_SIZE && (
+                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                    <span>Page {destPage + 1} of {totalDestPages}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={destPage === 0}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToPrevPage();
+                                            }}
+                                        >
+                                            Prev
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={destPage + 1 >= totalDestPages}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToNextPage();
+                                            }}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -645,6 +790,7 @@ export function SearchPage({
                     <Button
                         variant="outline"
                         className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        onClick={() => setShowProfilesPanel(true)}
                     >
                         Save Search
                     </Button>
@@ -665,6 +811,109 @@ export function SearchPage({
                     setShowAdvancedFilters(false);
                 }}
             />
+
+            {/* Profiles Panel */}
+            <Dialog open={showProfilesPanel} onOpenChange={setShowProfilesPanel}>
+                <DialogContent className="w-full max-w-md sm:max-w-md p-4">
+                    <DialogHeader>
+                        <DialogTitle>Save Search / Profiles</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 gap-3">
+                        {profilesError && (
+                            <div className="text-xs text-red-600">{profilesError}</div>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700 w-24">Saved</label>
+                            <select
+                                className="flex-1 border rounded px-2 py-2 text-sm"
+                                value={activeProfileId ?? ''}
+                                disabled={profilesLoading || profiles.length === 0}
+                                onChange={async (e) => {
+                                    const id = e.target.value || null;
+                                    setActiveProfileId(id);
+                                    if (id && onApplyProfile) {
+                                        await onApplyProfile(id);
+                                    }
+                                    const p = profiles.find((x) => x.id === id);
+                                    setRenameValue(p?.name ?? '');
+                                }}
+                            >
+                                <option value="">None</option>
+                                {profiles.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {activeProfile && (
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                                <span>
+                                    Active: <span className="font-medium">{activeProfile.name}</span>
+                                    {isProfileModified && (
+                                        <span className="text-orange-600 ml-1">(modified)</span>
+                                    )}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700 w-24">Save As</label>
+                            <Input
+                                placeholder="Profile name"
+                                value={newProfileName}
+                                onChange={(e) => setNewProfileName(e.target.value)}
+                            />
+                            <Button
+                                variant="outline"
+                                onClick={async () => {
+                                    if (!onCreateProfile || !newProfileName.trim()) return;
+                                    const created = await onCreateProfile(newProfileName.trim());
+                                    setActiveProfileId(created.id);
+                                    setRenameValue(created.name);
+                                    setNewProfileName('');
+                                }}
+                            >
+                                Save
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700 w-24">Rename</label>
+                            <Input
+                                placeholder="New name"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                disabled={!activeProfileId}
+                            />
+                            <Button
+                                variant="outline"
+                                disabled={!activeProfileId || !renameValue.trim() || !onUpdateProfile}
+                                onClick={async () => {
+                                    if (!activeProfileId || !onUpdateProfile) return;
+                                    const updated = await onUpdateProfile(activeProfileId, renameValue.trim());
+                                    setRenameValue(updated.name);
+                                }}
+                            >
+                                Rename
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled={!activeProfileId || !onDeleteProfile}
+                                onClick={async () => {
+                                    if (!activeProfileId || !onDeleteProfile) return;
+                                    await onDeleteProfile(activeProfileId);
+                                    setActiveProfileId(null);
+                                    setRenameValue('');
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

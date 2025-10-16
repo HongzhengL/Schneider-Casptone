@@ -93,9 +93,15 @@ export default function App() {
                 setProfiles(list);
             } catch (error) {
                 if (!isMounted) return;
-                console.error(error);
-                setProfilesError('Unable to load profiles.');
-                setProfiles([]);
+                // If the backend doesn't implement /profiles yet, quietly ignore 404
+                if (error instanceof ApiError && error.status === 404) {
+                    setProfiles([]);
+                    setProfilesError(null);
+                } else {
+                    console.error(error);
+                    setProfilesError('Unable to load profiles.');
+                    setProfiles([]);
+                }
             } finally {
                 if (isMounted) setProfilesLoading(false);
             }
@@ -143,6 +149,13 @@ export default function App() {
                         filters={loadFilters}
                         onFiltersChange={setLoadFilters}
                         createDefaultFilters={createDefaultLoadFilters}
+                        profiles={profiles}
+                        profilesLoading={profilesLoading}
+                        profilesError={profilesError}
+                        onCreateProfile={handleCreateProfile}
+                        onUpdateProfile={handleUpdateProfile}
+                        onDeleteProfile={handleDeleteProfile}
+                        onApplyProfile={handleApplyProfile}
                     />
                 );
             case 'findloadsresults':
