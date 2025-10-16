@@ -162,7 +162,9 @@ export function AdvancedFiltersDialog({
                         <label className="text-lg">Min Loaded RPM</label>
                         <Select
                             value={minLoadedRpm == null ? 'no-min' : minLoadedRpm.toFixed(2)}
-                            onValueChange={(v) => setMinLoadedRpm(v === 'no-min' ? null : Number(v))}
+                            onValueChange={(v) =>
+                                setMinLoadedRpm(v === 'no-min' ? null : Number(v))
+                            }
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue />
@@ -209,25 +211,41 @@ export function AdvancedFiltersDialog({
                             <div className="space-y-2">
                                 <label className="text-sm text-gray-600">Maximum</label>
                                 <Select
-                                    value={Number.isFinite(maxDistance) ? String(maxDistance) : '1000+'}
+                                    value={
+                                        Number.isFinite(maxDistance) ? String(maxDistance) : '1000+'
+                                    }
                                     onValueChange={(v) =>
-                                        setMaxDistance(v === '1000+' ? Number.POSITIVE_INFINITY : Number(v))
+                                        setMaxDistance(
+                                            v === '1000+' ? Number.POSITIVE_INFINITY : Number(v)
+                                        )
                                     }
                                 >
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {['100', '200', '300', '400', '500', '750', '1000', '1000+'].map(
-                                            (opt) => {
-                                                const isDisabled = opt !== '1000+' && Number(opt) < minDistance;
-                                                return (
-                                                    <SelectItem key={opt} value={opt} disabled={isDisabled}>
-                                                        {opt}
-                                                    </SelectItem>
-                                                );
-                                            }
-                                        )}
+                                        {[
+                                            '100',
+                                            '200',
+                                            '300',
+                                            '400',
+                                            '500',
+                                            '750',
+                                            '1000',
+                                            '1000+',
+                                        ].map((opt) => {
+                                            const isDisabled =
+                                                opt !== '1000+' && Number(opt) < minDistance;
+                                            return (
+                                                <SelectItem
+                                                    key={opt}
+                                                    value={opt}
+                                                    disabled={isDisabled}
+                                                >
+                                                    {opt}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>

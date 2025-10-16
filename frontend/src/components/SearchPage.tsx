@@ -336,7 +336,8 @@ export function SearchPage({
                     <h3 className="text-gray-600">Pick-up Date</h3>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">
-                            {formatDate(pickupRange.from).dateStr} – {formatDate(pickupRange.to).dateStr}
+                            {formatDate(pickupRange.from).dateStr} –{' '}
+                            {formatDate(pickupRange.to).dateStr}
                         </span>
                         <div className="flex flex-wrap items-center gap-1">
                             {presetDefs.map((p) => (
@@ -426,12 +427,16 @@ export function SearchPage({
                                 if (e.key === 'ArrowDown') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted((i) => (i + 1) % filteredDestinations.length);
+                                    setDestHighlighted(
+                                        (i) => (i + 1) % filteredDestinations.length
+                                    );
                                 } else if (e.key === 'ArrowUp') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted((i) =>
-                                        (i - 1 + filteredDestinations.length) % filteredDestinations.length
+                                    setDestHighlighted(
+                                        (i) =>
+                                            (i - 1 + filteredDestinations.length) %
+                                            filteredDestinations.length
                                     );
                                 } else if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -445,8 +450,8 @@ export function SearchPage({
                                 destinationsLoading
                                     ? 'Loading destinations...'
                                     : destinationsError
-                                    ? 'Unable to load destinations'
-                                    : 'Search destinations'
+                                      ? 'Unable to load destinations'
+                                      : 'Search destinations'
                             }
                             disabled={destinationsLoading || Boolean(destinationsError)}
                             className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
@@ -537,7 +542,8 @@ export function SearchPage({
                     <h3 className="text-gray-600">Drop Date</h3>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">
-                            {formatDate(dropRange.from).dateStr} – {formatDate(dropRange.to).dateStr}
+                            {formatDate(dropRange.from).dateStr} –{' '}
+                            {formatDate(dropRange.to).dateStr}
                         </span>
                         <div className="flex flex-wrap items-center gap-1">
                             {presetDefs.map((p) => (
