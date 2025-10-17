@@ -482,6 +482,34 @@ export function SearchPage({
                 <p className="text-orange-100 text-sm mt-1">Find your next assignment</p>
             </div>
 
+            {/* Profile Selector */}
+            <div className="p-3 bg-white rounded-lg border">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700 w-24">Profile</label>
+                    <select
+                        className="flex-1 border rounded px-2 py-2 text-sm"
+                        value={activeProfileId ?? ''}
+                        disabled={profilesLoading || profiles.length === 0}
+                        onChange={async (e) => {
+                            const id = e.target.value || null;
+                            setActiveProfileId(id);
+                            if (id && onApplyProfile) {
+                                await onApplyProfile(id);
+                            }
+                            const p = profiles.find((x) => x.id === id);
+                            setRenameValue(p?.name ?? '');
+                        }}
+                    >
+                        <option value="">None</option>
+                        {profiles.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             {/* Origin Search (mirrors Destination) */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
