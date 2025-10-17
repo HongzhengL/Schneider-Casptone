@@ -79,6 +79,14 @@ export function SearchPage({
     const [destinationsLoading, setDestinationsLoading] = useState(true);
     const [destinationsError, setDestinationsError] = useState<string | null>(null);
     const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
+    // Origin search UI state (mirrors destination)
+    const [originQuery, setOriginQuery] = useState<string>('');
+    const [originOpen, setOriginOpen] = useState(false);
+    const [originHighlighted, setOriginHighlighted] = useState(0);
+    const ORIG_PAGE_SIZE = 10;
+    const [origPage, setOrigPage] = useState(0);
+    const [selectOriginStates, setSelectOriginStates] = useState(false);
+    const [originState, setOriginState] = useState<string | null>(null);
     const [destOpen, setDestOpen] = useState(false);
     const [destHighlighted, setDestHighlighted] = useState(0);
     const DEST_PAGE_SIZE = 10;
@@ -171,6 +179,42 @@ export function SearchPage({
         [filteredDestinations.length]
     );
 
+    // Origin filtered/visible lists mirror destination logic
+    const filteredOrigins = useMemo(() => {
+        const q = originQuery.trim().toLowerCase();
+        if (!q) return destinations;
+        return destinations.filter((o) =>
+            [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
+        );
+    }, [destinations, originQuery]);
+
+    const visibleOrigins = useMemo(() => {
+        const start = origPage * ORIG_PAGE_SIZE;
+        const end = start + ORIG_PAGE_SIZE;
+        return filteredOrigins.slice(start, end);
+    }, [filteredOrigins, origPage]);
+
+    useEffect(() => {
+        if (originHighlighted >= visibleOrigins.length) {
+            setOriginHighlighted(visibleOrigins.length > 0 ? visibleOrigins.length - 1 : 0);
+        }
+    }, [visibleOrigins.length]);
+
+    const totalOrigPages = useMemo(
+        () => Math.max(1, Math.ceil(filteredOrigins.length / ORIG_PAGE_SIZE)),
+        [filteredOrigins.length]
+    );
+
+    const goToNextOrigPage = () => {
+        setOrigPage((p) => (p + 1 < totalOrigPages ? p + 1 : p));
+        setOriginHighlighted(0);
+    };
+
+    const goToPrevOrigPage = () => {
+        setOrigPage((p) => (p - 1 >= 0 ? p - 1 : p));
+        setOriginHighlighted(0);
+    };
+
     const goToNextPage = () => {
         setDestPage((p) => (p + 1 < totalDestPages ? p + 1 : p));
         setDestHighlighted(0);
@@ -253,6 +297,13 @@ export function SearchPage({
         const defaults = createDefaultFilters();
         setSelectStates(Boolean(defaults.destinationState));
         onFiltersChange(defaults);
+        // Reset origin UI-only state
+        setOriginQuery('');
+        setOriginOpen(false);
+        setOriginHighlighted(0);
+        setOrigPage(0);
+        setSelectOriginStates(false);
+        setOriginState(null);
     };
 
     const handleAdvancedApply = (values: AdvancedFilterValues) => {
@@ -319,6 +370,20 @@ export function SearchPage({
         setDestOpen(false);
     };
 
+    // Origin selection handler (UI-only)
+    const selectOrigin = (opt: DestinationOption | null) => {
+        if (!opt) {
+            setOriginQuery('');
+            setOriginOpen(false);
+            return;
+        }
+        setOriginQuery(opt.label);
+        setOriginOpen(false);
+        if (selectOriginStates) {
+            setOriginState(opt.state ?? null);
+        }
+    };
+
     useEffect(() => {
         setDestinationQuery(filters.destination ?? '');
     }, [filters.destination]);
@@ -356,6 +421,20 @@ export function SearchPage({
             ...filters,
             destinationState: enabled ? nextState : null,
         });
+    };
+
+    // Origin toggle for state auto-selection (UI-only)
+    const handleOriginToggle = (checked: boolean | string) => {
+        const enabled = checked === true;
+        setSelectOriginStates(enabled);
+        if (!enabled) {
+            setOriginState(null);
+        } else if (originQuery) {
+            const match = destinations.find(
+                (option) => option.label.toLowerCase() === originQuery.toLowerCase()
+            );
+            setOriginState(match?.state ?? null);
+        }
     };
 
     const advancedButtonLabel = `Advanced Filters${
@@ -401,6 +480,204 @@ export function SearchPage({
                     </button>
                 </div>
                 <p className="text-orange-100 text-sm mt-1">Find your next assignment</p>
+            </div>
+
+            {/* Origin Search (mirrors Destination) */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl">Pickup</h3>
+                    <Button
+                        variant="ghost"
+                        className="text-orange-500 hover:text-orange-600 px-2"
+                        onClick={() => {
+                            setOriginQuery('');
+                            setOriginOpen(false);
+                            setOriginHighlighted(0);
+                            setOrigPage(0);
+                            setSelectOriginStates(false);
+                            setOriginState(null);
+                        }}
+                    >
+                        Reset
+                    </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <span>Origin</span>
+                    <div className="flex items-center gap-2">
+                        <span>Select States</span>
+                        <Switch checked={selectOriginStates} onCheckedChange={handleOriginToggle} />
+                    </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-center gap-3">
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            role="combobox"
+                            aria-expanded={originOpen}
+                            aria-controls="origins-listbox"
+                            aria-activedescendant={
+                                originOpen && visibleOrigins[originHighlighted]
+                                    ? `origin-option-${originHighlighted}`
+                                    : undefined
+                            }
+                            aria-autocomplete="list"
+                            value={originQuery}
+                            onChange={(e) => {
+                                setOriginQuery(e.target.value);
+                                setOriginOpen(true);
+                                setOriginHighlighted(0);
+                                setOrigPage(0);
+                            }}
+                            onFocus={() => setOriginOpen(true)}
+                            onKeyDown={(e) => {
+                                if (!visibleOrigins.length) return;
+                                if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted((i) => (i + 1) % visibleOrigins.length);
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted((i) => (i - 1 + visibleOrigins.length) % visibleOrigins.length);
+                                } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const opt = visibleOrigins[originHighlighted];
+                                    if (opt) selectOrigin(opt);
+                                } else if (e.key === 'Escape') {
+                                    setOriginOpen(false);
+                                }
+                            }}
+                            placeholder={
+                                destinationsLoading
+                                    ? 'Loading origins...'
+                                    : destinationsError
+                                      ? 'Unable to load origins'
+                                      : 'Search origins'
+                            }
+                            disabled={destinationsLoading || Boolean(destinationsError)}
+                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                        />
+                        {originQuery && !destinationsLoading && !destinationsError && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => selectOrigin(null)}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+
+                    {originOpen && !destinationsLoading && !destinationsError && (
+                        <div
+                            id="origins-listbox"
+                            role="listbox"
+                            aria-label="Origin options"
+                            className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm"
+                            onTouchStart={(e) => {
+                                const touch = e.changedTouches?.[0];
+                                if (touch) {
+                                    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                                }
+                            }}
+                            onTouchEnd={(e) => {
+                                const start = touchStartRef.current;
+                                const touch = e.changedTouches?.[0];
+                                if (start && touch) {
+                                    const dx = touch.clientX - start.x;
+                                    const dy = touch.clientY - start.y;
+                                    const isHorizontal = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30;
+                                    if (isHorizontal) {
+                                        if (dx < 0) {
+                                            goToNextOrigPage();
+                                        } else {
+                                            goToPrevOrigPage();
+                                        }
+                                    }
+                                }
+                                touchStartRef.current = null;
+                            }}
+                        >
+                            {visibleOrigins.map((option, idx) => (
+                                <div
+                                    key={option.label}
+                                    id={`origin-option-${idx}`}
+                                    role="option"
+                                    aria-selected={idx === originHighlighted}
+                                    className={`px-3 py-2 text-sm cursor-pointer ${
+                                        idx === originHighlighted
+                                            ? 'bg-orange-50 text-orange-700'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                    onMouseEnter={() => setOriginHighlighted(idx)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        selectOrigin(option);
+                                    }}
+                                >
+                                    {option.label}
+                                </div>
+                            ))}
+                            {filteredOrigins.length > ORIG_PAGE_SIZE && (
+                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                    <span>Page {origPage + 1} of {totalOrigPages}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={origPage === 0}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToPrevOrigPage();
+                                            }}
+                                        >
+                                            Prev
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={origPage + 1 >= totalOrigPages}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToNextOrigPage();
+                                            }}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {destinationsLoading && (
+                    <p className="text-xs text-gray-500">Loading origins...</p>
+                )}
+                {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
+
+                {selectOriginStates && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <span className="text-sm text-gray-600">Origin state</span>
+                        <select
+                            value={originState ?? ''}
+                            onChange={(event) => setOriginState(event.target.value || null)}
+                            className="border rounded-md px-2 py-2 text-sm text-gray-700"
+                        >
+                            <option value="">All states</option>
+                            {stateOptions.map((state) => (
+                                <option key={state} value={state}>
+                                    {state}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
 
