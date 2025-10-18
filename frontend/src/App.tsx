@@ -8,6 +8,9 @@ import { SettingsPage } from './components/SettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
+import { LoginPage } from './components/LoginPage';
+import { SignUpPage } from './components/SignUpPage';
+import { useAuth } from './contexts/AuthContext';
 import { fetchCustomMetrics, ApiError, fetchProfiles, createProfile, updateProfile, deleteProfile as apiDeleteProfile, applyProfile as apiApplyProfile } from './services/api';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
 
@@ -49,9 +52,22 @@ export default function App() {
     const [loadFilters, setLoadFilters] = useState<LoadSearchFilters>(() =>
         createDefaultLoadFilters()
     );
+    const { isAuthenticated, isInitializing } = useAuth();
+    const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+    const [loginEmailPrefill, setLoginEmailPrefill] = useState('');
+    const [loginFlashMessage, setLoginFlashMessage] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            setMetricsLoading(false);
+            setMetricsError(null);
+            setCustomMetrics(fallbackMetrics);
+            setDefaultMetrics(fallbackMetrics);
+            return;
+        }
+
         let isMounted = true;
+        setMetricsLoading(true);
 
         const loadMetrics = async () => {
             try {
@@ -81,7 +97,15 @@ export default function App() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            setAuthView('login');
+            setLoginEmailPrefill('');
+            setLoginFlashMessage(null);
+        }
+    }, [isAuthenticated]);
 
     // Load saved profiles (search + advanced criteria)
     useEffect(() => {
@@ -186,6 +210,43 @@ export default function App() {
                 return <HomePage onNavigate={setCurrentPage} />;
         }
     };
+
+    if (isInitializing) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <p className="text-gray-500 text-sm">Loading your session…</p>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        if (authView === 'signup') {
+            return (
+                <SignUpPage
+                    onNavigateToLogin={(options) => {
+                        setAuthView('login');
+                        if (options?.email) {
+                            setLoginEmailPrefill(options.email);
+                        }
+                        if (options?.message) {
+                            setLoginFlashMessage(options.message);
+                        }
+                    }}
+                />
+            );
+        }
+
+        return (
+            <LoginPage
+                initialEmail={loginEmailPrefill}
+                onSwitchToSignUp={() => {
+                    setAuthView('signup');
+                    setLoginFlashMessage(null);
+                }}
+                flashMessage={loginFlashMessage}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">

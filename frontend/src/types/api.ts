@@ -189,3 +189,27 @@ export interface ProfileInput {
     name: string;
     filters: LoadSearchFilters;
 }
+
+// Auth types
+export interface SupabaseUser {
+    id: string;
+    email: string | null;
+    phone?: string | null;
+    user_metadata?: Record<string, unknown>;
+    app_metadata?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface AuthResponse {
+    expiresIn: number;
+    user: SupabaseUser;
+}
+
+export interface CurrentUserResponse {
+    user: SupabaseUser;
+}
+
+export interface SignupResponse {
+    user: SupabaseUser;
+    requiresConfirmation?: boolean;
+}
