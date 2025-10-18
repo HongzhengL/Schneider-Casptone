@@ -19,6 +19,7 @@ import {
 import { fetchDriverPortal, ApiError } from '../services/api';
 import type { DriverPortalResponse, MenuItem } from '../types/api';
 import { Button } from './ui/button';
+import { useAuth } from '../contexts/AuthContext';
 
 const ICON_MAP: Record<string, LucideIcon> = {
     user: User,
@@ -41,6 +42,7 @@ export function MorePage({ onNavigate }: MorePageProps) {
     const [driverData, setDriverData] = useState<DriverPortalResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { logout, isAuthenticating } = useAuth();
 
     const loadPortalData = useCallback(async () => {
         try {
@@ -103,6 +105,11 @@ export function MorePage({ onNavigate }: MorePageProps) {
             </div>
         );
     }
+
+    const handleSignOut = async () => {
+        await logout();
+        onNavigate('home');
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -287,9 +294,13 @@ export function MorePage({ onNavigate }: MorePageProps) {
 
             {/* Logout Button */}
             <div className="mx-4 mb-8">
-                <button className="w-full flex items-center justify-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 hover:bg-red-100 transition-colors">
+                <button
+                    onClick={handleSignOut}
+                    disabled={isAuthenticating}
+                    className="w-full flex items-center justify-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
                     <LogOut className="w-5 h-5" />
-                    <span>Sign Out</span>
+                    <span>{isAuthenticating ? 'Signing Out…' : 'Sign Out'}</span>
                 </button>
             </div>
 
