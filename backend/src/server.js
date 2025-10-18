@@ -15,6 +15,7 @@ import {
 } from './data/driverPortal.js';
 import { defaultMetrics } from './data/metrics.js';
 import { authRouter } from './routes/auth.js';
+import { profilesRouter } from './routes/profiles.js';
 import { buildAuthGuard } from './middleware/auth.js';
 import { errorHandler, requestIdMiddleware } from './middleware/errorHandler.js';
 
@@ -39,6 +40,7 @@ const authGuard = buildAuthGuard({
 app.use('/api', authGuard);
 
 app.use('/api/auth', authRouter);
+app.use('/api/profiles', profilesRouter);
 
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });

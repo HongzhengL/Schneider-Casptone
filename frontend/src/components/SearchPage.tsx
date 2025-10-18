@@ -488,16 +488,25 @@ export function SearchPage({
                     <label className="text-sm text-gray-700 w-24">Profile</label>
                     <select
                         className="flex-1 border rounded px-2 py-2 text-sm"
-                        value={activeProfileId ?? ''}
+                        value={activeProfileId || ''}
                         disabled={profilesLoading || profiles.length === 0}
                         onChange={async (e) => {
-                            const id = e.target.value || null;
-                            setActiveProfileId(id);
-                            if (id && onApplyProfile) {
-                                await onApplyProfile(id);
+                            const selectedValue = e.target.value;
+                            
+                            if (selectedValue === '') {
+                                // User selected "None" - reset everything to defaults
+                                setActiveProfileId(null);
+                                setRenameValue('');
+                                resetFilters();
+                            } else {
+                                // User selected a profile
+                                setActiveProfileId(selectedValue);
+                                if (onApplyProfile) {
+                                    await onApplyProfile(selectedValue);
+                                }
+                                const p = profiles.find((x) => x.id === selectedValue);
+                                setRenameValue(p?.name ?? '');
                             }
-                            const p = profiles.find((x) => x.id === id);
-                            setRenameValue(p?.name ?? '');
                         }}
                     >
                         <option value="">None</option>
@@ -1119,102 +1128,149 @@ export function SearchPage({
 
             {/* Profiles Panel */}
             <Dialog open={showProfilesPanel} onOpenChange={setShowProfilesPanel}>
-                <DialogContent className="w-full max-w-md sm:max-w-md p-4">
+                <DialogContent className="w-full max-w-md sm:max-w-md p-6">
                     <DialogHeader>
-                        <DialogTitle>Save Search / Profiles</DialogTitle>
+                        <DialogTitle className="text-lg">Search Profiles</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-1 gap-3">
+                    
+                    <div className="space-y-6">
                         {profilesError && (
-                            <div className="text-xs text-red-600">{profilesError}</div>
+                            <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded p-2">
+                                {profilesError}
+                            </div>
                         )}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700 w-24">Saved</label>
+
+                        {/* Load Profile Section */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                Load Profile
+                            </label>
                             <select
-                                className="flex-1 border rounded px-2 py-2 text-sm"
-                                value={activeProfileId ?? ''}
+                                className="w-full border rounded px-3 py-2 text-sm bg-white"
+                                value={activeProfileId || ''}
                                 disabled={profilesLoading || profiles.length === 0}
                                 onChange={async (e) => {
-                                    const id = e.target.value || null;
-                                    setActiveProfileId(id);
-                                    if (id && onApplyProfile) {
-                                        await onApplyProfile(id);
+                                    const selectedValue = e.target.value;
+                                    
+                                    if (selectedValue === '') {
+                                        // User selected "None" - reset everything to defaults
+                                        setActiveProfileId(null);
+                                        setRenameValue('');
+                                        resetFilters();
+                                    } else {
+                                        // User selected a profile
+                                        setActiveProfileId(selectedValue);
+                                        if (onApplyProfile) {
+                                            await onApplyProfile(selectedValue);
+                                        }
+                                        const p = profiles.find((x) => x.id === selectedValue);
+                                        setRenameValue(p?.name ?? '');
                                     }
-                                    const p = profiles.find((x) => x.id === id);
-                                    setRenameValue(p?.name ?? '');
                                 }}
                             >
-                                <option value="">None</option>
+                                <option value="">{profiles.length === 0 ? 'No saved profiles' : 'Select a profile...'}</option>
                                 {profiles.map((p) => (
                                     <option key={p.id} value={p.id}>
                                         {p.name}
                                     </option>
                                 ))}
                             </select>
+                            {profilesLoading && <p className="text-xs text-gray-500 mt-1">Loading profiles...</p>}
                         </div>
 
+                        {/* Active Profile Status */}
                         {activeProfile && (
-                            <div className="flex items-center justify-between text-xs text-gray-600">
-                                <span>
-                                    Active: <span className="font-medium">{activeProfile.name}</span>
+                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p className="text-xs text-gray-600">Active Profile</p>
+                                        <p className="text-sm font-semibold text-gray-800">{activeProfile.name}</p>
+                                    </div>
                                     {isProfileModified && (
-                                        <span className="text-orange-600 ml-1">(modified)</span>
+                                        <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded">
+                                            Modified
+                                        </span>
                                     )}
-                                </span>
+                                </div>
+
+                                {/* Update/Delete Actions for Active Profile */}
+                                <div className="space-y-2">
+                                    {isProfileModified && (
+                                        <Button
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                                            onClick={async () => {
+                                                if (!activeProfileId || !onUpdateProfile) return;
+                                                await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
+                                            }}
+                                        >
+                                            Update Profile with Current Filters
+                                        </Button>
+                                    )}
+                                    
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="New profile name"
+                                            value={renameValue}
+                                            onChange={(e) => setRenameValue(e.target.value)}
+                                            className="flex-1 text-sm"
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            disabled={!renameValue.trim() || renameValue === activeProfile.name}
+                                            onClick={async () => {
+                                                if (!activeProfileId || !onUpdateProfile) return;
+                                                await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
+                                            }}
+                                            className="text-sm"
+                                        >
+                                            Rename
+                                        </Button>
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-red-600 hover:bg-red-50 text-sm"
+                                        disabled={!onDeleteProfile}
+                                        onClick={async () => {
+                                            if (!activeProfileId || !onDeleteProfile) return;
+                                            await onDeleteProfile(activeProfileId);
+                                            setActiveProfileId(null);
+                                            setRenameValue('');
+                                        }}
+                                    >
+                                        Delete Profile
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700 w-24">Save As</label>
-                            <Input
-                                placeholder="Profile name"
-                                value={newProfileName}
-                                onChange={(e) => setNewProfileName(e.target.value)}
-                            />
-                            <Button
-                                variant="outline"
-                                onClick={async () => {
-                                    if (!onCreateProfile || !newProfileName.trim()) return;
-                                    const created = await onCreateProfile(newProfileName.trim());
-                                    setActiveProfileId(created.id);
-                                    setRenameValue(created.name);
-                                    setNewProfileName('');
-                                }}
-                            >
-                                Save
-                            </Button>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700 w-24">Rename</label>
-                            <Input
-                                placeholder="New name"
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                disabled={!activeProfileId}
-                            />
-                            <Button
-                                variant="outline"
-                                disabled={!activeProfileId || !renameValue.trim() || !onUpdateProfile}
-                                onClick={async () => {
-                                    if (!activeProfileId || !onUpdateProfile) return;
-                                    const updated = await onUpdateProfile(activeProfileId, renameValue.trim());
-                                    setRenameValue(updated.name);
-                                }}
-                            >
-                                Rename
-                            </Button>
-                            <Button
-                                variant="outline"
-                                disabled={!activeProfileId || !onDeleteProfile}
-                                onClick={async () => {
-                                    if (!activeProfileId || !onDeleteProfile) return;
-                                    await onDeleteProfile(activeProfileId);
-                                    setActiveProfileId(null);
-                                    setRenameValue('');
-                                }}
-                            >
-                                Delete
-                            </Button>
+                        {/* Save New Profile Section */}
+                        <div className="border-t pt-4">
+                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                Save as New Profile
+                            </label>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Profile name..."
+                                    value={newProfileName}
+                                    onChange={(e) => setNewProfileName(e.target.value)}
+                                    className="flex-1 text-sm"
+                                />
+                                <Button
+                                    className="bg-green-600 hover:bg-green-700 text-white text-sm px-4"
+                                    disabled={!newProfileName.trim() || !onCreateProfile}
+                                    onClick={async () => {
+                                        if (!onCreateProfile || !newProfileName.trim()) return;
+                                        const created = await onCreateProfile(newProfileName.trim());
+                                        setActiveProfileId(created.id);
+                                        setRenameValue(created.name);
+                                        setNewProfileName('');
+                                    }}
+                                >
+                                    Save
+                                </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Creates a new profile with your current filters</p>
                         </div>
                     </div>
                 </DialogContent>

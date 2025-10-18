@@ -167,8 +167,6 @@ export async function fetchDestinations(): Promise<DestinationOption[]> {
     return request<DestinationOption[]>('/destinations');
 }
 
-export { ApiError };
-
 // Profiles API
 export async function fetchProfiles(): Promise<Profile[]> {
     return request<Profile[]>('/profiles');
