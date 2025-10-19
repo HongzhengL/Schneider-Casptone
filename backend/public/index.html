@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Search</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    label { display: inline-block; width: 150px; }
+    input, select { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Load Search</h1>
+  <div>
+    <label for="profile-select">Profile:</label>
+    <select id="profile-select">
+      <option value="">-- None --</option>
+    </select>
+  </div>
+  <div>
+    <label for="origin-input">Origin:</label>
+    <input id="origin-input" list="origins-list">
+    <datalist id="origins-list"></datalist>
+  </div>
+  <div>
+    <label for="destination-input">Destination:</label>
+    <input id="destination-input" list="destinations-list">
+    <datalist id="destinations-list"></datalist>
+  </div>
+  <div>
+    <label for="origin-radius-input">Origin Radius (mi):</label>
+    <input id="origin-radius-input" type="number">
+  </div>
+  <div>
+    <label for="destination-radius-input">Destination Radius (mi):</label>
+    <input id="destination-radius-input" type="number">
+  </div>
+  <button id="search-button">Search</button>
+
+  <h2>Results</h2>
+  <ul id="results"></ul>
+
+  <script src="app.js"></script>
+</body>
+</html>
