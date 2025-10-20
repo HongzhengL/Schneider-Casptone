@@ -161,6 +161,7 @@ export interface AdvancedFilterValues {
 export interface LoadSearchFilters extends AdvancedFilterValues {
     confirmedOnly: boolean;
     standardNetworkOnly: boolean;
+    originRadius: number | null;
     destination: string | null;
     destinationState: string | null;
     destinationRadius: number | null;

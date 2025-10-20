@@ -38,6 +38,7 @@ const createDefaultLoadFilters = (): LoadSearchFilters => {
         serviceExclusions: [],
         confirmedOnly: false,
         standardNetworkOnly: false,
+        originRadius: null,
         destination: null,
         destinationState: null,
         destinationRadius: null,
@@ -47,6 +48,23 @@ const createDefaultLoadFilters = (): LoadSearchFilters => {
         dropDateTo: null,
     };
 };
+
+const normalizeFilters = (
+    incoming: Partial<LoadSearchFilters> | null | undefined
+): LoadSearchFilters => {
+    const defaults = createDefaultLoadFilters();
+    return {
+        ...defaults,
+        ...(incoming ?? {}),
+        serviceExclusions: incoming?.serviceExclusions ?? defaults.serviceExclusions,
+        originRadius: incoming?.originRadius ?? defaults.originRadius,
+    };
+};
+
+const normalizeProfile = (profile: Profile): Profile => ({
+    ...profile,
+    filters: normalizeFilters(profile.filters),
+});
 
 export default function App() {
     const [currentPage, setCurrentPage] = useState('home');
@@ -122,7 +140,8 @@ export default function App() {
             try {
                 const list = await fetchProfiles();
                 if (!isMounted) return;
-                setProfiles(list);
+                const normalizedList = list.map((profile) => normalizeProfile(profile));
+                setProfiles(normalizedList);
             } catch (error) {
                 if (!isMounted) return;
                 // If the backend doesn't implement /profiles yet, quietly ignore 404
@@ -146,13 +165,17 @@ export default function App() {
 
     // Profile management helpers (can be passed to pages later)
     const handleCreateProfile = async (name: string) => {
-        const newProfile = await createProfile({ name, filters: loadFilters });
+        const newProfile = normalizeProfile(
+            await createProfile({ name, filters: loadFilters })
+        );
         setProfiles((prev) => [newProfile, ...prev]);
         return newProfile;
     };
 
     const handleUpdateProfile = async (id: string, name: string, filters?: LoadSearchFilters) => {
-        const next = await updateProfile(id, { name, filters: filters ?? loadFilters });
+        const next = normalizeProfile(
+            await updateProfile(id, { name, filters: filters ?? loadFilters })
+        );
         setProfiles((prev) => prev.map((p) => (p.id === id ? next : p)));
         return next;
     };
@@ -164,8 +187,9 @@ export default function App() {
 
     const handleApplyProfile = async (id: string) => {
         const filters = await apiApplyProfile(id);
-        setLoadFilters(filters);
-        return filters;
+        const normalizedFilters = normalizeFilters(filters);
+        setLoadFilters(normalizedFilters);
+        return normalizedFilters;
     };
 
     const renderCurrentPage = () => {

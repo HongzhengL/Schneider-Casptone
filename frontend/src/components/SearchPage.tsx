@@ -73,7 +73,6 @@ export function SearchPage({
     onDeleteProfile,
     onApplyProfile,
 }: SearchPageProps) {
-    const [originRadius, setOriginRadius] = useState(500);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [selectStates, setSelectStates] = useState(Boolean(filters.destinationState));
     const [destinations, setDestinations] = useState<DestinationOption[]>([]);
@@ -221,11 +220,6 @@ export function SearchPage({
         setDestHighlighted(0);
     };
 
-    const goToPrevPage = () => {
-        setDestPage((p) => (p - 1 >= 0 ? p - 1 : p));
-        setDestHighlighted(0);
-    };
-
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
         to: filters.pickupDateTo ?? uiDefaultRanges.pickup.to,
@@ -236,6 +230,7 @@ export function SearchPage({
         to: filters.dropDateTo ?? uiDefaultRanges.drop.to,
     };
 
+    const originRadiusValue = filters.originRadius ?? 500;
     const destinationRadiusValue = filters.destinationRadius ?? 500;
 
     // Preset date ranges: helpers to quickly set from/to
@@ -294,7 +289,6 @@ export function SearchPage({
     };
 
     const resetFilters = () => {
-        setOriginRadius(500);
         const defaults = createDefaultFilters();
         setSelectStates(Boolean(defaults.destinationState));
         onFiltersChange(defaults);
@@ -400,6 +394,13 @@ export function SearchPage({
         onFiltersChange({
             ...filters,
             destinationRadius: value,
+        });
+    };
+
+    const handleOriginRadiusChange = (value: number) => {
+        onFiltersChange({
+            ...filters,
+            originRadius: value,
         });
     };
 
@@ -730,11 +731,11 @@ export function SearchPage({
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <span className="text-gray-700">Origin Radius</span>
-                    <span className="text-orange-600 font-semibold">{originRadius} mi</span>
+                    <span className="text-orange-600 font-semibold">{originRadiusValue} mi</span>
                 </div>
                 <Slider
-                    value={[originRadius]}
-                    onValueChange={(value) => setOriginRadius(value[0])}
+                    value={[originRadiusValue]}
+                    onValueChange={(value) => handleOriginRadiusChange(value[0])}
                     min={25}
                     max={500}
                     step={25}
