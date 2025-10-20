@@ -54,7 +54,9 @@ export const config = {
         }
 
         if (this.nodeEnv === 'production' && missingSupabase.length > 0) {
-            throw new Error(`Missing required environment variables: ${missingSupabase.join(', ')}`);
+            throw new Error(
+                `Missing required environment variables: ${missingSupabase.join(', ')}`
+            );
         }
 
         if (missingSupabase.length > 0) {

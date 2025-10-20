@@ -11,7 +11,15 @@ import { Toaster } from './components/ui/sonner';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { useAuth } from './contexts/AuthContext';
-import { fetchCustomMetrics, ApiError, fetchProfiles, createProfile, updateProfile, deleteProfile as apiDeleteProfile, applyProfile as apiApplyProfile } from './services/api';
+import {
+    fetchCustomMetrics,
+    ApiError,
+    fetchProfiles,
+    createProfile,
+    updateProfile,
+    deleteProfile as apiDeleteProfile,
+    applyProfile as apiApplyProfile,
+} from './services/api';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
 
 const fallbackMetrics: Metric[] = [

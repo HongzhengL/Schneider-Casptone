@@ -73,21 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const login = useCallback(
-        async (email: string, password: string, rememberMe: boolean) => {
-            setIsAuthenticating(true);
-            try {
-                const response = await loginRequest(email, password, rememberMe);
-                setUser(response.user);
-            } catch (error) {
-                setUser(null);
-                throw error;
-            } finally {
-                setIsAuthenticating(false);
-            }
-        },
-        []
-    );
+    const login = useCallback(async (email: string, password: string, rememberMe: boolean) => {
+        setIsAuthenticating(true);
+        try {
+            const response = await loginRequest(email, password, rememberMe);
+            setUser(response.user);
+        } catch (error) {
+            setUser(null);
+            throw error;
+        } finally {
+            setIsAuthenticating(false);
+        }
+    }, []);
 
     const logout = useCallback(async () => {
         setIsAuthenticating(true);

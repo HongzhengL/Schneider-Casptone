@@ -30,9 +30,7 @@ const setSessionCookies = (res, session, persistent = false) => {
     const accessTtlMs = (session.expires_in ?? 3600) * 1000;
     res.cookie(ACCESS_COOKIE, session.access_token, cookieOptions(accessTtlMs));
 
-    const refreshOptions = persistent
-        ? cookieOptions(1000 * 60 * 60 * 24 * 30)
-        : cookieOptions();
+    const refreshOptions = persistent ? cookieOptions(1000 * 60 * 60 * 24 * 30) : cookieOptions();
     res.cookie(REFRESH_COOKIE, session.refresh_token, refreshOptions);
 
     const persistenceOptions = persistent

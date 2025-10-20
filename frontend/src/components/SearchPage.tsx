@@ -7,7 +7,12 @@ import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { fetchDestinations } from '../services/api';
-import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters, Profile } from '../types/api';
+import type {
+    AdvancedFilterValues,
+    DestinationOption,
+    LoadSearchFilters,
+    Profile,
+} from '../types/api';
 
 interface SearchPageProps {
     onNavigate: (page: string) => void;
@@ -19,11 +24,7 @@ interface SearchPageProps {
     profilesLoading?: boolean;
     profilesError?: string | null;
     onCreateProfile?: (name: string) => Promise<Profile>;
-    onUpdateProfile?: (
-        id: string,
-        name: string,
-        filters?: LoadSearchFilters
-    ) => Promise<Profile>;
+    onUpdateProfile?: (id: string, name: string, filters?: LoadSearchFilters) => Promise<Profile>;
     onDeleteProfile?: (id: string) => Promise<void>;
     onApplyProfile?: (id: string) => Promise<LoadSearchFilters>;
 }
@@ -443,7 +444,8 @@ export function SearchPage({
 
     // Compare current filters to a given profile's filters
     const areFiltersEqual = (a: LoadSearchFilters, b: LoadSearchFilters) => {
-        const arrEq = (x: string[], y: string[]) => x.length === y.length && x.every((v, i) => v === y[i]);
+        const arrEq = (x: string[], y: string[]) =>
+            x.length === y.length && x.every((v, i) => v === y[i]);
         return (
             a.minLoadedRpm === b.minLoadedRpm &&
             a.minDistance === b.minDistance &&
@@ -461,8 +463,12 @@ export function SearchPage({
         );
     };
 
-    const activeProfile = activeProfileId ? profiles.find((p) => p.id === activeProfileId) ?? null : null;
-    const isProfileModified = activeProfile ? !areFiltersEqual(filters, activeProfile.filters) : false;
+    const activeProfile = activeProfileId
+        ? (profiles.find((p) => p.id === activeProfileId) ?? null)
+        : null;
+    const isProfileModified = activeProfile
+        ? !areFiltersEqual(filters, activeProfile.filters)
+        : false;
 
     return (
         <div className="p-4 space-y-6">
@@ -492,7 +498,7 @@ export function SearchPage({
                         disabled={profilesLoading || profiles.length === 0}
                         onChange={async (e) => {
                             const selectedValue = e.target.value;
-                            
+
                             if (selectedValue === '') {
                                 // User selected "None" - reset everything to defaults
                                 setActiveProfileId(null);
@@ -578,7 +584,10 @@ export function SearchPage({
                                 } else if (e.key === 'ArrowUp') {
                                     e.preventDefault();
                                     setOriginOpen(true);
-                                    setOriginHighlighted((i) => (i - 1 + visibleOrigins.length) % visibleOrigins.length);
+                                    setOriginHighlighted(
+                                        (i) =>
+                                            (i - 1 + visibleOrigins.length) % visibleOrigins.length
+                                    );
                                 } else if (e.key === 'Enter') {
                                     e.preventDefault();
                                     const opt = visibleOrigins[originHighlighted];
@@ -627,7 +636,8 @@ export function SearchPage({
                                 if (start && touch) {
                                     const dx = touch.clientX - start.x;
                                     const dy = touch.clientY - start.y;
-                                    const isHorizontal = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30;
+                                    const isHorizontal =
+                                        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30;
                                     if (isHorizontal) {
                                         if (dx < 0) {
                                             goToNextOrigPage();
@@ -661,7 +671,9 @@ export function SearchPage({
                             ))}
                             {filteredOrigins.length > ORIG_PAGE_SIZE && (
                                 <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
-                                    <span>Page {origPage + 1} of {totalOrigPages}</span>
+                                    <span>
+                                        Page {origPage + 1} of {totalOrigPages}
+                                    </span>
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant="outline"
@@ -693,9 +705,7 @@ export function SearchPage({
                         </div>
                     )}
                 </div>
-                {destinationsLoading && (
-                    <p className="text-xs text-gray-500">Loading origins...</p>
-                )}
+                {destinationsLoading && <p className="text-xs text-gray-500">Loading origins...</p>}
                 {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
 
                 {selectOriginStates && (
@@ -716,7 +726,6 @@ export function SearchPage({
                     </div>
                 )}
             </div>
-
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -834,7 +843,11 @@ export function SearchPage({
                                 } else if (e.key === 'ArrowUp') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted((i) => (i - 1 + visibleDestinations.length) % visibleDestinations.length);
+                                    setDestHighlighted(
+                                        (i) =>
+                                            (i - 1 + visibleDestinations.length) %
+                                            visibleDestinations.length
+                                    );
                                 } else if (e.key === 'Enter') {
                                     e.preventDefault();
                                     const opt = visibleDestinations[destHighlighted];
@@ -896,9 +909,7 @@ export function SearchPage({
                                             goToNextPage();
                                             // after page change, select first of next page
                                             setTimeout(() => {
-                                                selectDestination(
-                                                    visibleDestinations[0] ?? null
-                                                );
+                                                selectDestination(visibleDestinations[0] ?? null);
                                             }, 0);
                                         }
                                     } else {
@@ -948,7 +959,9 @@ export function SearchPage({
                             ))}
                             {filteredDestinations.length > DEST_PAGE_SIZE && (
                                 <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
-                                    <span>Page {destPage + 1} of {totalDestPages}</span>
+                                    <span>
+                                        Page {destPage + 1} of {totalDestPages}
+                                    </span>
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant="outline"
@@ -1129,21 +1142,24 @@ export function SearchPage({
 
             {/* Profiles Panel */}
             <Dialog open={showProfilesPanel} onOpenChange={setShowProfilesPanel}>
-                <DialogContent 
+                <DialogContent
                     className="w-full max-w-md sm:max-w-md p-6"
                     aria-describedby="profiles-panel-description"
                 >
                     <DialogHeader>
-                        <DialogTitle id="profiles-panel-title" className="text-lg">Search Profiles</DialogTitle>
+                        <DialogTitle id="profiles-panel-title" className="text-lg">
+                            Search Profiles
+                        </DialogTitle>
                         <DialogDescription id="profiles-panel-description" className="sr-only">
-                            Manage your saved search profiles. Load existing profiles, update or delete them, or save your current search filters as a new profile.
+                            Manage your saved search profiles. Load existing profiles, update or
+                            delete them, or save your current search filters as a new profile.
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-6">
                         {profilesError && (
-                            <div 
-                                role="alert" 
+                            <div
+                                role="alert"
                                 aria-live="assertive"
                                 className="bg-red-50 border border-red-200 text-red-700 text-xs rounded p-2"
                             >
@@ -1153,8 +1169,8 @@ export function SearchPage({
 
                         {/* Load Profile Section */}
                         <div>
-                            <label 
-                                htmlFor="load-profile-select" 
+                            <label
+                                htmlFor="load-profile-select"
                                 className="block text-sm font-semibold text-gray-800 mb-2"
                             >
                                 Load Profile
@@ -1168,7 +1184,7 @@ export function SearchPage({
                                 aria-describedby="load-profile-status"
                                 onChange={async (e) => {
                                     const selectedValue = e.target.value;
-                                    
+
                                     if (selectedValue === '') {
                                         // User selected "None" - reset everything to defaults
                                         setActiveProfileId(null);
@@ -1185,7 +1201,11 @@ export function SearchPage({
                                     }
                                 }}
                             >
-                                <option value="">{profiles.length === 0 ? 'No saved profiles' : 'Select a profile...'}</option>
+                                <option value="">
+                                    {profiles.length === 0
+                                        ? 'No saved profiles'
+                                        : 'Select a profile...'}
+                                </option>
                                 {profiles.map((p) => (
                                     <option key={p.id} value={p.id}>
                                         {p.name}
@@ -1193,10 +1213,10 @@ export function SearchPage({
                                 ))}
                             </select>
                             {profilesLoading && (
-                                <p 
-                                    id="load-profile-status" 
-                                    className="text-xs text-gray-500 mt-1" 
-                                    role="status" 
+                                <p
+                                    id="load-profile-status"
+                                    className="text-xs text-gray-500 mt-1"
+                                    role="status"
                                     aria-live="polite"
                                 >
                                     Loading profiles...
@@ -1206,20 +1226,28 @@ export function SearchPage({
 
                         {/* Active Profile Status */}
                         {activeProfile && (
-                            <div 
+                            <div
                                 className="bg-blue-50 border border-blue-200 rounded p-3"
                                 role="region"
                                 aria-labelledby="active-profile-heading"
                             >
                                 <div className="flex items-center justify-between mb-3">
                                     <div>
-                                        <p id="active-profile-heading" className="text-xs text-gray-600">Active Profile</p>
-                                        <p className="text-sm font-semibold text-gray-800" aria-label={`Current active profile: ${activeProfile.name}`}>
+                                        <p
+                                            id="active-profile-heading"
+                                            className="text-xs text-gray-600"
+                                        >
+                                            Active Profile
+                                        </p>
+                                        <p
+                                            className="text-sm font-semibold text-gray-800"
+                                            aria-label={`Current active profile: ${activeProfile.name}`}
+                                        >
                                             {activeProfile.name}
                                         </p>
                                     </div>
                                     {isProfileModified && (
-                                        <span 
+                                        <span
                                             className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded"
                                             role="status"
                                             aria-label="Profile has been modified since last save"
@@ -1236,14 +1264,18 @@ export function SearchPage({
                                             className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
                                             onClick={async () => {
                                                 if (!activeProfileId || !onUpdateProfile) return;
-                                                await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
+                                                await onUpdateProfile(
+                                                    activeProfileId,
+                                                    renameValue.trim(),
+                                                    filters
+                                                );
                                             }}
                                             aria-label={`Update ${activeProfile.name} with current filter settings`}
                                         >
                                             Update Profile with Current Filters
                                         </Button>
                                     )}
-                                    
+
                                     <div className="flex gap-2">
                                         <label htmlFor="rename-profile-input" className="sr-only">
                                             Rename profile
@@ -1260,10 +1292,17 @@ export function SearchPage({
                                         <Button
                                             id="rename-profile-button"
                                             variant="outline"
-                                            disabled={!renameValue.trim() || renameValue === activeProfile.name}
+                                            disabled={
+                                                !renameValue.trim() ||
+                                                renameValue === activeProfile.name
+                                            }
                                             onClick={async () => {
                                                 if (!activeProfileId || !onUpdateProfile) return;
-                                                await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
+                                                await onUpdateProfile(
+                                                    activeProfileId,
+                                                    renameValue.trim(),
+                                                    filters
+                                                );
                                             }}
                                             className="text-sm"
                                             aria-label={`Confirm rename to ${renameValue || 'new name'}`}
@@ -1292,8 +1331,8 @@ export function SearchPage({
 
                         {/* Save New Profile Section */}
                         <div className="border-t pt-4">
-                            <label 
-                                htmlFor="new-profile-name" 
+                            <label
+                                htmlFor="new-profile-name"
                                 className="block text-sm font-semibold text-gray-800 mb-2"
                             >
                                 Save as New Profile
@@ -1313,7 +1352,9 @@ export function SearchPage({
                                     disabled={!newProfileName.trim() || !onCreateProfile}
                                     onClick={async () => {
                                         if (!onCreateProfile || !newProfileName.trim()) return;
-                                        const created = await onCreateProfile(newProfileName.trim());
+                                        const created = await onCreateProfile(
+                                            newProfileName.trim()
+                                        );
                                         setActiveProfileId(created.id);
                                         setRenameValue(created.name);
                                         setNewProfileName('');
@@ -1323,10 +1364,7 @@ export function SearchPage({
                                     Save
                                 </Button>
                             </div>
-                            <p 
-                                id="new-profile-description" 
-                                className="text-xs text-gray-500 mt-1"
-                            >
+                            <p id="new-profile-description" className="text-xs text-gray-500 mt-1">
                                 Creates a new profile with your current filters
                             </p>
                         </div>

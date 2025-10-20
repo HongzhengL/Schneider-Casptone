@@ -114,7 +114,9 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
                 } else if (error.status === 400) {
                     setErrorMessage('Please check your inputs and try again.');
                 } else {
-                    setErrorMessage('Unable to create your account right now. Please try again later.');
+                    setErrorMessage(
+                        'Unable to create your account right now. Please try again later.'
+                    );
                 }
             } else {
                 setErrorMessage('Unable to create your account right now. Please try again later.');
@@ -135,8 +137,8 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
                         Create Your Driver Account
                     </h1>
                     <p className="text-sm text-gray-500 max-w-md mx-auto">
-                        Access load assignments, performance insights, and Schneider driver tools with
-                        your personalized login.
+                        Access load assignments, performance insights, and Schneider driver tools
+                        with your personalized login.
                     </p>
                 </div>
 
@@ -144,7 +146,10 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
                     <form className="space-y-5" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                                <label
+                                    htmlFor="firstName"
+                                    className="text-sm font-medium text-gray-700"
+                                >
                                     First name
                                 </label>
                                 <input
@@ -158,7 +163,10 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                                <label
+                                    htmlFor="lastName"
+                                    className="text-sm font-medium text-gray-700"
+                                >
                                     Last name
                                 </label>
                                 <input
@@ -191,7 +199,10 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                                <label
+                                    htmlFor="password"
+                                    className="text-sm font-medium text-gray-700"
+                                >
                                     Password *
                                 </label>
                                 <input

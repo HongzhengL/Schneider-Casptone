@@ -10,7 +10,11 @@ interface LoginPageProps {
     flashMessage?: string | null;
 }
 
-export function LoginPage({ initialEmail = '', onSwitchToSignUp, flashMessage = null }: LoginPageProps) {
+export function LoginPage({
+    initialEmail = '',
+    onSwitchToSignUp,
+    flashMessage = null,
+}: LoginPageProps) {
     const { login, isAuthenticating } = useAuth();
     const [email, setEmail] = useState(initialEmail);
     const [password, setPassword] = useState('');
@@ -58,8 +62,8 @@ export function LoginPage({ initialEmail = '', onSwitchToSignUp, flashMessage = 
                         Schneider Driver Portal
                     </h1>
                     <p className="text-orange-100 text-base leading-relaxed">
-                        Manage your assignments, track performance, and stay connected with your team.
-                        Sign in to access secure tools built for Schneider drivers.
+                        Manage your assignments, track performance, and stay connected with your
+                        team. Sign in to access secure tools built for Schneider drivers.
                     </p>
                     <div className="flex items-center space-x-3 pt-3 border-t border-white/20">
                         <ShieldCheck className="w-6 h-6" />
@@ -78,8 +82,8 @@ export function LoginPage({ initialEmail = '', onSwitchToSignUp, flashMessage = 
                             Sign in to your account
                         </h2>
                         <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                            Enter your credentials to access load assignments, wallet details, and driver
-                            insights.
+                            Enter your credentials to access load assignments, wallet details, and
+                            driver insights.
                         </p>
                     </div>
 

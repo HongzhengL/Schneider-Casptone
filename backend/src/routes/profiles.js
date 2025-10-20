@@ -10,38 +10,20 @@ const router = express.Router();
 router.use(requireAuth);
 
 const createProfileValidation = [
-    body('name')
-        .isString()
-        .trim()
-        .notEmpty()
-        .withMessage('Profile name is required'),
-    body('filters')
-        .optional()
-        .isObject()
-        .withMessage('Filters must be an object'),
+    body('name').isString().trim().notEmpty().withMessage('Profile name is required'),
+    body('filters').optional().isObject().withMessage('Filters must be an object'),
     handleValidationErrors,
 ];
 
 const updateProfileValidation = [
-    param('id')
-        .isUUID()
-        .withMessage('Invalid profile ID'),
-    body('name')
-        .isString()
-        .trim()
-        .notEmpty()
-        .withMessage('Profile name is required'),
-    body('filters')
-        .optional()
-        .isObject()
-        .withMessage('Filters must be an object'),
+    param('id').isUUID().withMessage('Invalid profile ID'),
+    body('name').isString().trim().notEmpty().withMessage('Profile name is required'),
+    body('filters').optional().isObject().withMessage('Filters must be an object'),
     handleValidationErrors,
 ];
 
 const deleteProfileValidation = [
-    param('id')
-        .isUUID()
-        .withMessage('Invalid profile ID'),
+    param('id').isUUID().withMessage('Invalid profile ID'),
     handleValidationErrors,
 ];
 

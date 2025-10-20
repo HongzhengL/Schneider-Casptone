@@ -40,10 +40,7 @@ const signupValidation = [
 
 const loginValidation = [
     body('email').isEmail().withMessage('A valid email address is required'),
-    body('password')
-        .isString()
-        .notEmpty()
-        .withMessage('Password is required'),
+    body('password').isString().notEmpty().withMessage('Password is required'),
     body('rememberMe').optional().isBoolean().withMessage('rememberMe must be a boolean'),
     handleValidationErrors,
 ];
@@ -114,7 +111,9 @@ router.post(
         res.status(201).json({
             user: createdUser,
             requiresConfirmation:
-                requiresConfirmation || !createdUser.email_confirmed_at || !createdUser.email_confirmed,
+                requiresConfirmation ||
+                !createdUser.email_confirmed_at ||
+                !createdUser.email_confirmed,
         });
     })
 );
@@ -153,7 +152,8 @@ router.post(
         const cookieAccess = req.cookies?.sb_access_token ?? null;
         const cookieRefresh = req.cookies?.sb_refresh_token ?? null;
         const bodyAccess = typeof req.body?.accessToken === 'string' ? req.body.accessToken : null;
-        const bodyRefresh = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : null;
+        const bodyRefresh =
+            typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : null;
 
         const accessToken = headerToken ?? cookieAccess ?? bodyAccess;
         const refreshToken = cookieRefresh ?? bodyRefresh;
@@ -174,12 +174,8 @@ router.post(
     })
 );
 
-router.get(
-    '/me',
-    requireAuth,
-    (req, res) => {
-        res.json({ user: req.user });
-    }
-);
+router.get('/me', requireAuth, (req, res) => {
+    res.json({ user: req.user });
+});
 
 export const authRouter = router;
