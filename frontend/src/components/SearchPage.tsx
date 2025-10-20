@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { fetchDestinations } from '../services/api';
 import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters, Profile } from '../types/api';
 
@@ -1105,6 +1105,7 @@ export function SearchPage({
                         variant="outline"
                         className="border-orange-300 text-orange-600 hover:bg-orange-50"
                         onClick={() => setShowProfilesPanel(true)}
+                        aria-label="Open search profiles panel to save or manage profiles"
                     >
                         Save Search
                     </Button>
@@ -1128,27 +1129,43 @@ export function SearchPage({
 
             {/* Profiles Panel */}
             <Dialog open={showProfilesPanel} onOpenChange={setShowProfilesPanel}>
-                <DialogContent className="w-full max-w-md sm:max-w-md p-6">
+                <DialogContent 
+                    className="w-full max-w-md sm:max-w-md p-6"
+                    aria-describedby="profiles-panel-description"
+                >
                     <DialogHeader>
-                        <DialogTitle className="text-lg">Search Profiles</DialogTitle>
+                        <DialogTitle id="profiles-panel-title" className="text-lg">Search Profiles</DialogTitle>
+                        <DialogDescription id="profiles-panel-description" className="sr-only">
+                            Manage your saved search profiles. Load existing profiles, update or delete them, or save your current search filters as a new profile.
+                        </DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-6">
                         {profilesError && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded p-2">
+                            <div 
+                                role="alert" 
+                                aria-live="assertive"
+                                className="bg-red-50 border border-red-200 text-red-700 text-xs rounded p-2"
+                            >
                                 {profilesError}
                             </div>
                         )}
 
                         {/* Load Profile Section */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                            <label 
+                                htmlFor="load-profile-select" 
+                                className="block text-sm font-semibold text-gray-800 mb-2"
+                            >
                                 Load Profile
                             </label>
                             <select
+                                id="load-profile-select"
                                 className="w-full border rounded px-3 py-2 text-sm bg-white"
                                 value={activeProfileId || ''}
                                 disabled={profilesLoading || profiles.length === 0}
+                                aria-label="Select a saved search profile to load"
+                                aria-describedby="load-profile-status"
                                 onChange={async (e) => {
                                     const selectedValue = e.target.value;
                                     
@@ -1175,19 +1192,38 @@ export function SearchPage({
                                     </option>
                                 ))}
                             </select>
-                            {profilesLoading && <p className="text-xs text-gray-500 mt-1">Loading profiles...</p>}
+                            {profilesLoading && (
+                                <p 
+                                    id="load-profile-status" 
+                                    className="text-xs text-gray-500 mt-1" 
+                                    role="status" 
+                                    aria-live="polite"
+                                >
+                                    Loading profiles...
+                                </p>
+                            )}
                         </div>
 
                         {/* Active Profile Status */}
                         {activeProfile && (
-                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <div 
+                                className="bg-blue-50 border border-blue-200 rounded p-3"
+                                role="region"
+                                aria-labelledby="active-profile-heading"
+                            >
                                 <div className="flex items-center justify-between mb-3">
                                     <div>
-                                        <p className="text-xs text-gray-600">Active Profile</p>
-                                        <p className="text-sm font-semibold text-gray-800">{activeProfile.name}</p>
+                                        <p id="active-profile-heading" className="text-xs text-gray-600">Active Profile</p>
+                                        <p className="text-sm font-semibold text-gray-800" aria-label={`Current active profile: ${activeProfile.name}`}>
+                                            {activeProfile.name}
+                                        </p>
                                     </div>
                                     {isProfileModified && (
-                                        <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded">
+                                        <span 
+                                            className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded"
+                                            role="status"
+                                            aria-label="Profile has been modified since last save"
+                                        >
                                             Modified
                                         </span>
                                     )}
@@ -1202,19 +1238,27 @@ export function SearchPage({
                                                 if (!activeProfileId || !onUpdateProfile) return;
                                                 await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
                                             }}
+                                            aria-label={`Update ${activeProfile.name} with current filter settings`}
                                         >
                                             Update Profile with Current Filters
                                         </Button>
                                     )}
                                     
                                     <div className="flex gap-2">
+                                        <label htmlFor="rename-profile-input" className="sr-only">
+                                            Rename profile
+                                        </label>
                                         <Input
+                                            id="rename-profile-input"
                                             placeholder="New profile name"
                                             value={renameValue}
                                             onChange={(e) => setRenameValue(e.target.value)}
                                             className="flex-1 text-sm"
+                                            aria-label={`Rename ${activeProfile.name}`}
+                                            aria-describedby="rename-profile-button"
                                         />
                                         <Button
+                                            id="rename-profile-button"
                                             variant="outline"
                                             disabled={!renameValue.trim() || renameValue === activeProfile.name}
                                             onClick={async () => {
@@ -1222,6 +1266,7 @@ export function SearchPage({
                                                 await onUpdateProfile(activeProfileId, renameValue.trim(), filters);
                                             }}
                                             className="text-sm"
+                                            aria-label={`Confirm rename to ${renameValue || 'new name'}`}
                                         >
                                             Rename
                                         </Button>
@@ -1229,7 +1274,7 @@ export function SearchPage({
 
                                     <Button
                                         variant="outline"
-                                        className="w-full text-red-600 hover:bg-red-50 text-sm"
+                                        className="w-full text-red-600 hover:bg-red-50 hover:border-red-300 text-sm"
                                         disabled={!onDeleteProfile}
                                         onClick={async () => {
                                             if (!activeProfileId || !onDeleteProfile) return;
@@ -1237,6 +1282,7 @@ export function SearchPage({
                                             setActiveProfileId(null);
                                             setRenameValue('');
                                         }}
+                                        aria-label={`Delete profile ${activeProfile.name} permanently`}
                                     >
                                         Delete Profile
                                     </Button>
@@ -1246,18 +1292,24 @@ export function SearchPage({
 
                         {/* Save New Profile Section */}
                         <div className="border-t pt-4">
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                            <label 
+                                htmlFor="new-profile-name" 
+                                className="block text-sm font-semibold text-gray-800 mb-2"
+                            >
                                 Save as New Profile
                             </label>
                             <div className="flex gap-2">
                                 <Input
+                                    id="new-profile-name"
                                     placeholder="Profile name..."
                                     value={newProfileName}
                                     onChange={(e) => setNewProfileName(e.target.value)}
                                     className="flex-1 text-sm"
+                                    aria-label="Enter name for new profile"
+                                    aria-describedby="new-profile-description"
+                                    aria-required="true"
                                 />
                                 <Button
-                                    className="bg-green-600 hover:bg-green-700 text-white text-sm px-4"
                                     disabled={!newProfileName.trim() || !onCreateProfile}
                                     onClick={async () => {
                                         if (!onCreateProfile || !newProfileName.trim()) return;
@@ -1266,11 +1318,17 @@ export function SearchPage({
                                         setRenameValue(created.name);
                                         setNewProfileName('');
                                     }}
+                                    aria-label={`Save current filters as new profile named ${newProfileName || 'untitled'}`}
                                 >
                                     Save
                                 </Button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Creates a new profile with your current filters</p>
+                            <p 
+                                id="new-profile-description" 
+                                className="text-xs text-gray-500 mt-1"
+                            >
+                                Creates a new profile with your current filters
+                            </p>
                         </div>
                     </div>
                 </DialogContent>
