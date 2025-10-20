@@ -5,8 +5,8 @@ import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
-import { fetchDestinations } from '../services/api';
-import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters } from '../types/api';
+import { fetchDestinations, fetchOrigins } from '../services/api';
+import type { AdvancedFilterValues, DestinationOption, OriginOption, LoadSearchFilters } from '../types/api';
 
 interface SearchPageProps {
     onNavigate: (page: string) => void;
@@ -55,12 +55,19 @@ export function SearchPage({
     const [originRadius, setOriginRadius] = useState(500);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [selectStates, setSelectStates] = useState(Boolean(filters.destinationState));
+    const [selectOriginStates, setSelectOriginStates] = useState(Boolean(filters.originState));
     const [destinations, setDestinations] = useState<DestinationOption[]>([]);
     const [destinationsLoading, setDestinationsLoading] = useState(true);
     const [destinationsError, setDestinationsError] = useState<string | null>(null);
     const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
     const [destOpen, setDestOpen] = useState(false);
     const [destHighlighted, setDestHighlighted] = useState(0);
+    const [origins, setOrigins] = useState<OriginOption[]>([]);
+    const [originsLoading, setOriginsLoading] = useState(true);
+    const [originsError, setOriginsError] = useState<string | null>(null);
+    const [originQuery, setOriginQuery] = useState<string>(filters.origin ?? '');
+    const [originOpen, setOriginOpen] = useState(false);
+    const [originHighlighted, setOriginHighlighted] = useState(0);
 
     const uiDefaultRanges = useMemo(() => {
         const today = new Date();
@@ -79,6 +86,10 @@ export function SearchPage({
     useEffect(() => {
         setSelectStates(Boolean(filters.destinationState));
     }, [filters.destinationState]);
+
+    useEffect(() => {
+        setSelectOriginStates(Boolean(filters.originState));
+    }, [filters.originState]);
 
     useEffect(() => {
         let mounted = true;
@@ -103,10 +114,36 @@ export function SearchPage({
         };
     }, []);
 
+    useEffect(() => {
+        let mounted = true;
+        const loadOrigins = async () => {
+            try {
+                const data = await fetchOrigins();
+                if (!mounted) return;
+                setOrigins(data);
+                setOriginsLoading(false);
+            } catch (err) {
+                if (!mounted) return;
+                setOriginsError(err instanceof Error ? err.message : 'Failed to load origins');
+                setOriginsLoading(false);
+            }
+        };
+        loadOrigins();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
     const stateOptions = useMemo(
         () =>
             Array.from(new Set(destinations.map((option) => option.state).filter(Boolean))).sort(),
         [destinations]
+    );
+
+    const originStateOptions = useMemo(
+        () =>
+            Array.from(new Set(origins.map((option) => option.state).filter(Boolean))).sort(),
+        [origins]
     );
 
     const filteredDestinations = useMemo(() => {
@@ -116,6 +153,14 @@ export function SearchPage({
             [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
         );
     }, [destinations, destinationQuery]);
+
+    const filteredOrigins = useMemo(() => {
+        const q = originQuery.trim().toLowerCase();
+        if (!q) return origins;
+        return origins.filter((o) =>
+            [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
+        );
+    }, [origins, originQuery]);
 
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
@@ -128,6 +173,7 @@ export function SearchPage({
     };
 
     const destinationRadiusValue = filters.destinationRadius ?? 500;
+    const originRadiusValue = filters.originRadius ?? 500;
 
     // Preset date ranges: helpers to quickly set from/to
     const presetDefs = [
@@ -188,6 +234,7 @@ export function SearchPage({
         setOriginRadius(500);
         const defaults = createDefaultFilters();
         setSelectStates(Boolean(defaults.destinationState));
+        setSelectOriginStates(Boolean(defaults.originState));
         onFiltersChange(defaults);
     };
 
@@ -294,6 +341,76 @@ export function SearchPage({
         });
     };
 
+    const handleOriginChange = (value: string) => {
+        if (!value) {
+            onFiltersChange({
+                ...filters,
+                origin: null,
+                originState: selectOriginStates ? filters.originState : null,
+            });
+            return;
+        }
+        const match = origins.find(
+            (option) => option.label.toLowerCase() === value.toLowerCase()
+        );
+        onFiltersChange({
+            ...filters,
+            origin: value,
+            originState: selectOriginStates ? (match?.state ?? null) : null,
+        });
+    };
+
+    const selectOrigin = (opt: OriginOption | null) => {
+        if (!opt) {
+            setOriginQuery('');
+            handleOriginChange('');
+            setOriginOpen(false);
+            return;
+        }
+        setOriginQuery(opt.label);
+        handleOriginChange(opt.label);
+        setOriginOpen(false);
+    };
+
+    useEffect(() => {
+        setOriginQuery(filters.origin ?? '');
+    }, [filters.origin]);
+
+    const handleOriginStateChange = (state: string) => {
+        onFiltersChange({
+            ...filters,
+            originState: state ? state : null,
+        });
+    };
+
+    const handleOriginRadiusChange = (value: number) => {
+        onFiltersChange({
+            ...filters,
+            originRadius: value,
+        });
+    };
+
+    const handleOriginToggle = (checked: boolean | string) => {
+        const enabled = checked === true;
+        setSelectOriginStates(enabled);
+        let nextState: string | null = null;
+        if (enabled) {
+            const originValue = filters.origin ?? null;
+            if (originValue) {
+                const match = origins.find(
+                    (option) => option.label.toLowerCase() === originValue.toLowerCase()
+                );
+                nextState = match?.state ?? null;
+            } else {
+                nextState = filters.originState ?? null;
+            }
+        }
+        onFiltersChange({
+            ...filters,
+            originState: enabled ? nextState : null,
+        });
+    };
+
     const advancedButtonLabel = `Advanced Filters${
         activeAdvancedFilters ? ` (${activeAdvancedFilters})` : ''
     }`;
@@ -378,6 +495,151 @@ export function SearchPage({
                         />
                     </div>
                 </div>
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl">Origin</h3>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <span>Origin Location</span>
+                    <div className="flex items-center gap-2">
+                        <span>Select States</span>
+                        <Switch checked={selectOriginStates} onCheckedChange={handleOriginToggle} />
+                    </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-center gap-3">
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            role="combobox"
+                            aria-expanded={originOpen}
+                            aria-controls="origins-listbox"
+                            aria-activedescendant={
+                                originOpen && filteredOrigins[originHighlighted]
+                                    ? `origin-option-${originHighlighted}`
+                                    : undefined
+                            }
+                            aria-autocomplete="list"
+                            value={originQuery}
+                            onChange={(e) => {
+                                setOriginQuery(e.target.value);
+                                setOriginOpen(true);
+                                setOriginHighlighted(0);
+                            }}
+                            onFocus={() => setOriginOpen(true)}
+                            onKeyDown={(e) => {
+                                if (!filteredOrigins.length) return;
+                                if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted((i) => (i + 1) % filteredOrigins.length);
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted((i) =>
+                                        (i - 1 + filteredOrigins.length) % filteredOrigins.length
+                                    );
+                                } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const opt = filteredOrigins[originHighlighted];
+                                    if (opt) selectOrigin(opt);
+                                } else if (e.key === 'Escape') {
+                                    setOriginOpen(false);
+                                }
+                            }}
+                            placeholder={
+                                originsLoading
+                                    ? 'Loading origins...'
+                                    : originsError
+                                    ? 'Unable to load origins'
+                                    : 'Search origins'
+                            }
+                            disabled={originsLoading || Boolean(originsError)}
+                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                        />
+                        {originQuery && !originsLoading && !originsError && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => selectOrigin(null)}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    {originOpen && filteredOrigins.length > 0 && (
+                        <div
+                            id="origins-listbox"
+                            role="listbox"
+                            className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
+                        >
+                            {filteredOrigins.map((option, idx) => (
+                                <div
+                                    key={option.label}
+                                    id={`origin-option-${idx}`}
+                                    role="option"
+                                    aria-selected={idx === originHighlighted}
+                                    className={`px-3 py-2 text-sm cursor-pointer ${
+                                        idx === originHighlighted
+                                            ? 'bg-orange-50 text-orange-700'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                    onMouseEnter={() => setOriginHighlighted(idx)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        selectOrigin(option);
+                                    }}
+                                >
+                                    {option.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {originsLoading && (
+                    <p className="text-xs text-gray-500">Loading origins…</p>
+                )}
+                {originsError && <p className="text-xs text-red-600">{originsError}</p>}
+
+                {selectOriginStates && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <span className="text-sm text-gray-600">Origin state</span>
+                        <select
+                            value={filters.originState ?? ''}
+                            onChange={(event) => handleOriginStateChange(event.target.value)}
+                            className="border rounded-md px-2 py-2 text-sm text-gray-700"
+                        >
+                            <option value="">All states</option>
+                            {originStateOptions.map((state) => (
+                                <option key={state} value={state}>
+                                    {state}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-700">Origin Radius</span>
+                    <span className="text-orange-600 font-semibold">
+                        {originRadiusValue} mi
+                    </span>
+                </div>
+                <Slider
+                    value={[originRadiusValue]}
+                    onValueChange={(value) => handleOriginRadiusChange(value[0])}
+                    min={25}
+                    max={500}
+                    step={25}
+                    className="w-full"
+                />
             </div>
 
             <div className="space-y-4">

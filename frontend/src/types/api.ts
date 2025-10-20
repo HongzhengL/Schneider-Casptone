@@ -164,6 +164,9 @@ export interface LoadSearchFilters extends AdvancedFilterValues {
     destination: string | null;
     destinationState: string | null;
     destinationRadius: number | null;
+    origin: string | null;
+    originState: string | null;
+    originRadius: number | null;
     pickupDateFrom: string | null;
     pickupDateTo: string | null;
     dropDateFrom: string | null;
@@ -171,6 +174,12 @@ export interface LoadSearchFilters extends AdvancedFilterValues {
 }
 
 export interface DestinationOption {
+    label: string;
+    city: string;
+    state: string;
+}
+
+export interface OriginOption {
     label: string;
     city: string;
     state: string;

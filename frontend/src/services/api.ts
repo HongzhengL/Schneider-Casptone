@@ -2,6 +2,7 @@ import type {
     CompletedRun,
     CompletedRunResponse,
     DestinationOption,
+    OriginOption,
     DriverPortalResponse,
     LoadRecord,
     LoadRecordResponse,
@@ -103,6 +104,18 @@ const buildLoadQuery = (filters?: LoadSearchFilters) => {
         params.set('destinationRadius', filters.destinationRadius.toString());
     }
 
+    if (filters.origin) {
+        params.set('origin', filters.origin);
+    }
+
+    if (filters.originState) {
+        params.set('originState', filters.originState);
+    }
+
+    if (filters.originRadius != null) {
+        params.set('originRadius', filters.originRadius.toString());
+    }
+
     if (filters.pickupDateFrom) {
         params.set('startDate', filters.pickupDateFrom);
     }
@@ -153,6 +166,10 @@ export async function fetchCustomMetrics(): Promise<Metric[]> {
 
 export async function fetchDestinations(): Promise<DestinationOption[]> {
     return request<DestinationOption[]>('/destinations');
+}
+
+export async function fetchOrigins(): Promise<OriginOption[]> {
+    return request<OriginOption[]>('/origins');
 }
 
 export { ApiError };
