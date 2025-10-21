@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Truck, SlidersHorizontal, Search } from 'lucide-react';
+import { Bell, Truck, SlidersHorizontal, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { toast } from 'sonner';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { fetchDestinations } from '../services/api';
 import type {
     AdvancedFilterValues,
@@ -93,9 +94,17 @@ export function SearchPage({
     const [destPage, setDestPage] = useState(0);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
     const [showProfilesPanel, setShowProfilesPanel] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'save' | 'delete' | null>(null);
     // Profiles UI state
     const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
     const [newProfileName, setNewProfileName] = useState('');
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [confirmProcessing, setConfirmProcessing] = useState(false);
+    const [removedProfileIds, setRemovedProfileIds] = useState<string[]>([]);
+    const [profileFeedback, setProfileFeedback] = useState<{
+        type: 'success' | 'error';
+        message: string;
+    } | null>(null);
     const [renameValue, setRenameValue] = useState('');
 
     const uiDefaultRanges = useMemo(() => {
@@ -123,6 +132,12 @@ export function SearchPage({
         const p = profiles.find((x) => x.id === activeProfileId);
         if (p) setRenameValue(p.name);
     }, [profiles, activeProfileId]);
+
+    useEffect(() => {
+        setRemovedProfileIds((prev) =>
+            prev.filter((id) => profiles.some((profile) => profile.id === id))
+        );
+    }, [profiles]);
 
     useEffect(() => {
         let mounted = true;
@@ -464,12 +479,102 @@ export function SearchPage({
         );
     };
 
+    const visibleProfiles = useMemo(
+        () => profiles.filter((profile) => !removedProfileIds.includes(profile.id)),
+        [profiles, removedProfileIds]
+    );
+
     const activeProfile = activeProfileId
-        ? (profiles.find((p) => p.id === activeProfileId) ?? null)
+        ? (visibleProfiles.find((p) => p.id === activeProfileId) ?? null)
         : null;
     const isProfileModified = activeProfile
         ? !areFiltersEqual(filters, activeProfile.filters)
         : false;
+
+    const trimmedNewProfileName = newProfileName.trim();
+    const isDeleteConfirmation = pendingAction === 'delete';
+    const isSaveConfirmation = pendingAction === 'save';
+    const confirmDisabled =
+        confirmProcessing ||
+        (isSaveConfirmation && (!onCreateProfile || !trimmedNewProfileName)) ||
+        (isDeleteConfirmation && (!onDeleteProfile || !activeProfileId));
+    const confirmTitle = isDeleteConfirmation
+        ? 'Delete profile?'
+        : isSaveConfirmation
+          ? 'Save new profile?'
+          : 'Confirm action';
+    const confirmMessage = isDeleteConfirmation
+        ? `Profile "${activeProfile?.name ?? 'Selected profile'}" will be removed permanently.`
+        : isSaveConfirmation
+          ? `Create a profile named "${trimmedNewProfileName}" using your current filters.`
+          : '';
+    const confirmButtonLabel = isDeleteConfirmation ? 'Yes, delete profile' : 'Save profile';
+    const confirmVariant = isDeleteConfirmation ? 'destructive' : 'default';
+
+    const handleConfirmDialogChange = (open: boolean) => {
+        setConfirmDialogOpen(open);
+        if (!open) {
+            setPendingAction(null);
+        }
+    };
+
+    const handleConfirmAction = async () => {
+        if (confirmProcessing || !pendingAction) {
+            return;
+        }
+
+        const action = pendingAction;
+        const profileIdForDelete = activeProfileId;
+        const profileNameForDelete = activeProfile?.name ?? 'Profile';
+
+        setConfirmProcessing(true);
+
+        try {
+            if (action === 'save') {
+                if (!onCreateProfile || !trimmedNewProfileName) {
+                    throw new Error('Enter a profile name to save.');
+                }
+                const created = await onCreateProfile(trimmedNewProfileName);
+                setActiveProfileId(created.id);
+                setRenameValue(created.name);
+                setNewProfileName('');
+                toast.success(`Profile "${created.name}" saved.`);
+                setProfileFeedback({
+                    type: 'success',
+                    message: `Profile "${created.name}" saved successfully.`,
+                });
+            } else if (action === 'delete') {
+                if (!profileIdForDelete || !onDeleteProfile) {
+                    throw new Error('Select a profile to delete.');
+                }
+                await onDeleteProfile(profileIdForDelete);
+                setRemovedProfileIds((prev) => [...prev, profileIdForDelete]);
+                setActiveProfileId(null);
+                setRenameValue('');
+                toast.success(`Profile "${profileNameForDelete}" deleted.`);
+                setProfileFeedback({
+                    type: 'success',
+                    message: `Profile "${profileNameForDelete}" deleted successfully.`,
+                });
+            }
+
+            setConfirmDialogOpen(false);
+            setPendingAction(null);
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Unable to complete the action.';
+            toast.error(message);
+            setProfileFeedback({ type: 'error', message });
+        } finally {
+            setConfirmProcessing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!showProfilesPanel) {
+            setProfileFeedback(null);
+        }
+    }, [showProfilesPanel]);
 
     return (
         <div className="p-4 space-y-6">
@@ -495,8 +600,12 @@ export function SearchPage({
                     <label className="text-sm text-gray-700 w-24">Profile</label>
                     <select
                         className="flex-1 border rounded px-2 py-2 text-sm"
-                        value={activeProfileId || ''}
-                        disabled={profilesLoading || profiles.length === 0}
+                        value={
+                            activeProfileId && removedProfileIds.includes(activeProfileId)
+                                ? ''
+                                : activeProfileId || ''
+                        }
+                        disabled={profilesLoading || visibleProfiles.length === 0}
                         onChange={async (e) => {
                             const selectedValue = e.target.value;
 
@@ -511,13 +620,13 @@ export function SearchPage({
                                 if (onApplyProfile) {
                                     await onApplyProfile(selectedValue);
                                 }
-                                const p = profiles.find((x) => x.id === selectedValue);
+                                const p = visibleProfiles.find((x) => x.id === selectedValue);
                                 setRenameValue(p?.name ?? '');
                             }
                         }}
                     >
                         <option value="">None</option>
-                        {profiles.map((p) => (
+                        {visibleProfiles.map((p) => (
                             <option key={p.id} value={p.id}>
                                 {p.name}
                             </option>
@@ -1167,6 +1276,24 @@ export function SearchPage({
                                 {profilesError}
                             </div>
                         )}
+                        {profileFeedback && (
+                            <div
+                                role="status"
+                                aria-live="polite"
+                                className={`flex items-center gap-2 text-xs rounded p-2 border ${
+                                    profileFeedback.type === 'error'
+                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                        : 'bg-green-50 border-green-200 text-green-700'
+                                }`}
+                            >
+                                {profileFeedback.type === 'error' ? (
+                                    <AlertCircle className="w-4 h-4" />
+                                ) : (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                )}
+                                <span>{profileFeedback.message}</span>
+                            </div>
+                        )}
 
                         {/* Load Profile Section */}
                         <div>
@@ -1179,8 +1306,12 @@ export function SearchPage({
                             <select
                                 id="load-profile-select"
                                 className="w-full border rounded px-3 py-2 text-sm bg-white"
-                                value={activeProfileId || ''}
-                                disabled={profilesLoading || profiles.length === 0}
+                                value={
+                                    activeProfileId && removedProfileIds.includes(activeProfileId)
+                                        ? ''
+                                        : activeProfileId || ''
+                                }
+                                disabled={profilesLoading || visibleProfiles.length === 0}
                                 aria-label="Select a saved search profile to load"
                                 aria-describedby="load-profile-status"
                                 onChange={async (e) => {
@@ -1197,17 +1328,17 @@ export function SearchPage({
                                         if (onApplyProfile) {
                                             await onApplyProfile(selectedValue);
                                         }
-                                        const p = profiles.find((x) => x.id === selectedValue);
+                                        const p = visibleProfiles.find((x) => x.id === selectedValue);
                                         setRenameValue(p?.name ?? '');
                                     }
                                 }}
                             >
                                 <option value="">
-                                    {profiles.length === 0
+                                    {visibleProfiles.length === 0
                                         ? 'No saved profiles'
                                         : 'Select a profile...'}
                                 </option>
-                                {profiles.map((p) => (
+                                {visibleProfiles.map((p) => (
                                     <option key={p.id} value={p.id}>
                                         {p.name}
                                     </option>
@@ -1316,11 +1447,10 @@ export function SearchPage({
                                         variant="outline"
                                         className="w-full text-red-600 hover:bg-red-50 hover:border-red-300 text-sm"
                                         disabled={!onDeleteProfile}
-                                        onClick={async () => {
+                                        onClick={() => {
                                             if (!activeProfileId || !onDeleteProfile) return;
-                                            await onDeleteProfile(activeProfileId);
-                                            setActiveProfileId(null);
-                                            setRenameValue('');
+                                            setPendingAction('delete');
+                                            setConfirmDialogOpen(true);
                                         }}
                                         aria-label={`Delete profile ${activeProfile.name} permanently`}
                                     >
@@ -1351,14 +1481,10 @@ export function SearchPage({
                                 />
                                 <Button
                                     disabled={!newProfileName.trim() || !onCreateProfile}
-                                    onClick={async () => {
+                                    onClick={() => {
                                         if (!onCreateProfile || !newProfileName.trim()) return;
-                                        const created = await onCreateProfile(
-                                            newProfileName.trim()
-                                        );
-                                        setActiveProfileId(created.id);
-                                        setRenameValue(created.name);
-                                        setNewProfileName('');
+                                        setPendingAction('save');
+                                        setConfirmDialogOpen(true);
                                     }}
                                     aria-label={`Save current filters as new profile named ${newProfileName || 'untitled'}`}
                                 >
@@ -1370,6 +1496,39 @@ export function SearchPage({
                             </p>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={confirmDialogOpen} onOpenChange={handleConfirmDialogChange}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>{confirmTitle}</DialogTitle>
+                        <DialogDescription>{confirmMessage}</DialogDescription>
+                    </DialogHeader>
+                    <p className="text-sm text-gray-600">
+                        {isDeleteConfirmation
+                            ? `Profile: ${activeProfile?.name ?? 'Unknown'}`
+                            : isSaveConfirmation
+                              ? `Profile name: ${trimmedNewProfileName}`
+                              : ''}
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => handleConfirmDialogChange(false)}
+                            disabled={confirmProcessing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={confirmVariant}
+                            className="text-white"
+                            disabled={confirmDisabled}
+                            onClick={handleConfirmAction}
+                        >
+                            {confirmProcessing ? 'Working…' : confirmButtonLabel}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
