@@ -1,7 +1,20 @@
-import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+const cwdEnvPath = path.resolve(process.cwd(), '.env');
+const rootEnvPath = path.resolve(process.cwd(), '..', '.env');
+const envPath = fs.existsSync(cwdEnvPath)
+    ? cwdEnvPath
+    : fs.existsSync(rootEnvPath)
+      ? rootEnvPath
+      : null;
+
+if (envPath) {
+    dotenv.config({ path: envPath });
+} else {
+    dotenv.config();
+}
 
 export const config = {
     port: process.env.PORT || 4000,
@@ -9,6 +22,10 @@ export const config = {
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
     accessTokenSecret: process.env.ACCESS_TOKEN_SECRET || 'default-secret-key-for-development',
     dbConnectionString: process.env.DB_CONNECTION_STRING || '',
+    supabase: {
+        url: process.env.SUPABASE_URL || '',
+        serviceRoleKey: process.env.SUPABASE_KEY || '',
+    },
 
     // Error handling configuration
     errorHandling: {
@@ -26,11 +43,26 @@ export const config = {
 
     // Validation
     validate() {
-        const required = []; // Empty for now - no required env vars in development
-        const missing = required.filter((key) => !process.env[key]);
+        const missingSupabase = [];
 
-        if (missing.length > 0) {
-            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        if (!process.env.SUPABASE_URL) {
+            missingSupabase.push('SUPABASE_URL');
+        }
+
+        if (!process.env.SUPABASE_KEY) {
+            missingSupabase.push('SUPABASE_KEY');
+        }
+
+        if (this.nodeEnv === 'production' && missingSupabase.length > 0) {
+            throw new Error(
+                `Missing required environment variables: ${missingSupabase.join(', ')}`
+            );
+        }
+
+        if (missingSupabase.length > 0) {
+            console.warn(
+                '⚠️  WARNING: Supabase credentials are not fully configured. Authentication routes will be disabled until SUPABASE_URL and SUPABASE_KEY are set.'
+            );
         }
 
         // Warn if using default values in production
@@ -39,6 +71,10 @@ export const config = {
             this.accessTokenSecret === 'default-secret-key-for-development'
         ) {
             console.warn('⚠️  WARNING: Using default ACCESS_TOKEN_SECRET in production!');
+        }
+
+        if (this.nodeEnv === 'production' && this.supabase.serviceRoleKey === '') {
+            console.warn('⚠️  WARNING: SUPABASE_KEY is empty in production environment');
         }
     },
 };
