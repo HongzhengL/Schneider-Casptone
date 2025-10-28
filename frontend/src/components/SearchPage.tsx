@@ -476,6 +476,7 @@ export function SearchPage({
             arrEq(a.serviceExclusions, b.serviceExclusions) &&
             a.confirmedOnly === b.confirmedOnly &&
             a.standardNetworkOnly === b.standardNetworkOnly &&
+            a.originRadius === b.originRadius &&
             a.destination === b.destination &&
             a.destinationState === b.destinationState &&
             a.destinationRadius === b.destinationRadius &&
