@@ -6,7 +6,14 @@ import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from './ui/dialog';
 import { fetchDestinations } from '../services/api';
 import type {
     AdvancedFilterValues,
@@ -1328,7 +1335,9 @@ export function SearchPage({
                                         if (onApplyProfile) {
                                             await onApplyProfile(selectedValue);
                                         }
-                                        const p = visibleProfiles.find((x) => x.id === selectedValue);
+                                        const p = visibleProfiles.find(
+                                            (x) => x.id === selectedValue
+                                        );
                                         setRenameValue(p?.name ?? '');
                                     }
                                 }}

@@ -165,9 +165,7 @@ export default function App() {
 
     // Profile management helpers (can be passed to pages later)
     const handleCreateProfile = async (name: string) => {
-        const newProfile = normalizeProfile(
-            await createProfile({ name, filters: loadFilters })
-        );
+        const newProfile = normalizeProfile(await createProfile({ name, filters: loadFilters }));
         setProfiles((prev) => [newProfile, ...prev]);
         return newProfile;
     };
