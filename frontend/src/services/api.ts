@@ -188,7 +188,6 @@ export async function fetchProfile(id: string): Promise<Profile> {
 export async function createProfile(input: ProfileInput): Promise<Profile> {
     return request<Profile>('/profiles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(input),
     });
 }
@@ -196,7 +195,6 @@ export async function createProfile(input: ProfileInput): Promise<Profile> {
 export async function updateProfile(id: string, input: ProfileInput): Promise<Profile> {
     return request<Profile>(`/profiles/${encodeURIComponent(id)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(input),
     });
 }
