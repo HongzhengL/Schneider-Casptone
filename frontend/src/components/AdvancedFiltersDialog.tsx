@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
+import { Switch } from './ui/switch';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Info, RotateCcw } from 'lucide-react';
 import type { AdvancedFilterValues } from '../types/api';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface AdvancedFiltersDialogProps {
     open: boolean;
@@ -26,6 +28,7 @@ export function AdvancedFiltersDialog({
     const [maxDistance, setMaxDistance] = useState<number>(Number.POSITIVE_INFINITY);
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
     const [exclusionQuery, setExclusionQuery] = useState('');
+    const [inclusionMode, setInclusionMode] = useState(false);
 
     useEffect(() => {
         setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm : null);
@@ -63,6 +66,44 @@ export function AdvancedFiltersDialog({
         );
     }, [exclusionQuery]);
 
+    const exclusionLabelById = useMemo(() => {
+        const map: Record<string, string> = {};
+        for (const o of serviceExclusionOptions) map[o.id] = o.label;
+        return map;
+    }, []);
+
+    const filteredIdSet = useMemo(
+        () => new Set(filteredExclusionOptions.map((o) => o.id)),
+        [filteredExclusionOptions]
+    );
+
+    const serviceGroups = useMemo(
+        () => [
+            { key: 'compliance', label: 'Compliance', ids: ['twic', 'hazmat', 'high-value'] },
+            {
+                key: 'customer-live',
+                label: 'Customer Live',
+                ids: ['customer-live-load', 'customer-live-unload'],
+            },
+            { key: 'live', label: 'Live', ids: ['live-load', 'live-unload'] },
+            { key: 'lumper', label: 'Lumper', ids: ['lumper-load', 'lumper-unload'] },
+            {
+                key: 'driver-assist',
+                label: 'Driver Assist',
+                ids: ['driver-assist-load', 'driver-assist-unload'],
+            },
+            {
+                key: 'driver-load',
+                label: 'Driver Load/Unload',
+                ids: ['driver-load', 'driver-unload'],
+            },
+            { key: 'trailer', label: 'Trailer', ids: ['trailer-shuttle', 'trailer-spot'] },
+            { key: 'relay', label: 'Relay', ids: ['pick-up-relay', 'drop-relay'] },
+            { key: 'stops', label: 'Stops', ids: ['stop-off'] },
+        ],
+        []
+    );
+
     const handleExclusionChange = (id: string, checked: boolean) => {
         if (checked) {
             if (!serviceExclusions.includes(id)) {
@@ -75,7 +116,15 @@ export function AdvancedFiltersDialog({
 
     const handleClearAllFiltered = () => {
         const ids = new Set(filteredExclusionOptions.map((o) => o.id));
-        setServiceExclusions(serviceExclusions.filter((id) => !ids.has(id)));
+        if (inclusionMode) {
+            // In inclusion mode, clearing means unchecking all filtered (i.e., exclude them)
+            const next = new Set(serviceExclusions);
+            ids.forEach((id) => next.add(id));
+            setServiceExclusions(Array.from(next));
+        } else {
+            // In exclusion mode, clearing means remove filtered from exclusions
+            setServiceExclusions(serviceExclusions.filter((id) => !ids.has(id)));
+        }
     };
 
     const handleReset = () => {
@@ -158,116 +207,224 @@ export function AdvancedFiltersDialog({
 
                 <div className="space-y-6 pt-4">
                     {/* Min Loaded RPM */}
-                    <div className="space-y-2">
-                        <label className="text-lg">Min Loaded RPM</label>
-                        <Select
-                            value={minLoadedRpm == null ? 'no-min' : minLoadedRpm.toFixed(2)}
-                            onValueChange={(v) => setMinLoadedRpm(v === 'no-min' ? null : Number(v))}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="no-min">No Min</SelectItem>
-                                <SelectItem value="1.00">$1.00</SelectItem>
-                                <SelectItem value="1.25">$1.25</SelectItem>
-                                <SelectItem value="1.50">$1.50</SelectItem>
-                                <SelectItem value="1.75">$1.75</SelectItem>
-                                <SelectItem value="2.00">$2.00</SelectItem>
-                                <SelectItem value="2.25">$2.25</SelectItem>
-                                <SelectItem value="2.50">$2.50</SelectItem>
-                                <SelectItem value="2.75">$2.75</SelectItem>
-                                <SelectItem value="3.00">$3.00</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Rate</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Select
+                                value={minLoadedRpm == null ? 'no-min' : minLoadedRpm.toFixed(2)}
+                                onValueChange={(v) =>
+                                    setMinLoadedRpm(v === 'no-min' ? null : Number(v))
+                                }
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="no-min">No Min</SelectItem>
+                                    <SelectItem value="1.00">$1.00</SelectItem>
+                                    <SelectItem value="1.25">$1.25</SelectItem>
+                                    <SelectItem value="1.50">$1.50</SelectItem>
+                                    <SelectItem value="1.75">$1.75</SelectItem>
+                                    <SelectItem value="2.00">$2.00</SelectItem>
+                                    <SelectItem value="2.25">$2.25</SelectItem>
+                                    <SelectItem value="2.50">$2.50</SelectItem>
+                                    <SelectItem value="2.75">$2.75</SelectItem>
+                                    <SelectItem value="3.00">$3.00</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </CardContent>
+                    </Card>
 
                     {/* Loaded Distance */}
-                    <div className="space-y-4">
-                        <label className="text-lg">Loaded Distance</label>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm text-gray-600">Minimum</label>
-                                <Select
-                                    value={String(minDistance)}
-                                    onValueChange={(v) => setMinDistance(Number(v))}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="0">0</SelectItem>
-                                        <SelectItem value="50">50</SelectItem>
-                                        <SelectItem value="100">100</SelectItem>
-                                        <SelectItem value="200">200</SelectItem>
-                                        <SelectItem value="300">300</SelectItem>
-                                        <SelectItem value="400">400</SelectItem>
-                                        <SelectItem value="500">500</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm text-gray-600">Maximum</label>
-                                <Select
-                                    value={Number.isFinite(maxDistance) ? String(maxDistance) : '1000+'}
-                                    onValueChange={(v) =>
-                                        setMaxDistance(v === '1000+' ? Number.POSITIVE_INFINITY : Number(v))
-                                    }
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {['100', '200', '300', '400', '500', '750', '1000', '1000+'].map(
-                                            (opt) => {
-                                                const isDisabled = opt !== '1000+' && Number(opt) < minDistance;
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Distance</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm text-gray-600">Minimum</label>
+                                    <Select
+                                        value={String(minDistance)}
+                                        onValueChange={(v) => setMinDistance(Number(v))}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0">0</SelectItem>
+                                            <SelectItem value="50">50</SelectItem>
+                                            <SelectItem value="100">100</SelectItem>
+                                            <SelectItem value="200">200</SelectItem>
+                                            <SelectItem value="300">300</SelectItem>
+                                            <SelectItem value="400">400</SelectItem>
+                                            <SelectItem value="500">500</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm text-gray-600">Maximum</label>
+                                    <Select
+                                        value={
+                                            Number.isFinite(maxDistance)
+                                                ? String(maxDistance)
+                                                : '1000+'
+                                        }
+                                        onValueChange={(v) =>
+                                            setMaxDistance(
+                                                v === '1000+' ? Number.POSITIVE_INFINITY : Number(v)
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {[
+                                                '100',
+                                                '200',
+                                                '300',
+                                                '400',
+                                                '500',
+                                                '750',
+                                                '1000',
+                                                '1000+',
+                                            ].map((opt) => {
+                                                const isDisabled =
+                                                    opt !== '1000+' && Number(opt) < minDistance;
                                                 return (
-                                                    <SelectItem key={opt} value={opt} disabled={isDisabled}>
+                                                    <SelectItem
+                                                        key={opt}
+                                                        value={opt}
+                                                        disabled={isDisabled}
+                                                    >
                                                         {opt}
                                                     </SelectItem>
                                                 );
-                                            }
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Service Exclusion */}
-                    <div className="space-y-4">
-                        <label className="text-lg">Service Exclusion</label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={exclusionQuery}
-                                onChange={(e) => setExclusionQuery(e.target.value)}
-                                placeholder="Search exclusions..."
-                                className="flex-1"
-                            />
-                            <Button variant="outline" size="sm" onClick={handleClearAllFiltered}>
-                                Clear All
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-x-4 gap-y-3">
-                            {filteredExclusionOptions.map((option) => (
-                                <div key={option.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={option.id}
-                                        checked={serviceExclusions.includes(option.id)}
-                                        onCheckedChange={(checked) =>
-                                            handleExclusionChange(option.id, checked === true)
-                                        }
-                                    />
-                                    <label
-                                        htmlFor={option.id}
-                                        className="text-sm text-gray-700 cursor-pointer leading-tight"
-                                    >
-                                        {option.label}
-                                    </label>
+                                            })}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Service Inclusion/Exclusion */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle>
+                                    {inclusionMode ? 'Service Inclusion' : 'Service Exclusion'}
+                                </CardTitle>
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                    <span>Inclusion</span>
+                                    <Switch
+                                        checked={inclusionMode}
+                                        onCheckedChange={(v) => setInclusionMode(v === true)}
+                                    />
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={exclusionQuery}
+                                    onChange={(e) => setExclusionQuery(e.target.value)}
+                                    placeholder={
+                                        inclusionMode
+                                            ? 'Search inclusions...'
+                                            : 'Search exclusions...'
+                                    }
+                                    className="flex-1"
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleClearAllFiltered}
+                                >
+                                    Clear All
+                                </Button>
+                            </div>
+                            <div className="space-y-2">
+                                {serviceGroups.map((group) => {
+                                    const visibleIds = group.ids.filter((id) =>
+                                        filteredIdSet.has(id)
+                                    );
+                                    if (visibleIds.length === 0) return null;
+                                    const selectedCount = visibleIds.filter((id) =>
+                                        serviceExclusions.includes(id)
+                                    ).length;
+                                    const includedCount = inclusionMode
+                                        ? visibleIds.length - selectedCount
+                                        : selectedCount;
+                                    return (
+                                        <details key={group.key} className="border rounded-md">
+                                            <summary className="px-3 py-2 cursor-pointer select-none flex items-center justify-between">
+                                                <span className="text-sm font-medium text-gray-800">
+                                                    {group.label}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {includedCount} selected
+                                                </span>
+                                            </summary>
+                                            <div className="mt-2 grid grid-cols-3 gap-x-4 gap-y-3 px-3 pb-3">
+                                                {visibleIds.map((id) => (
+                                                    <div
+                                                        key={id}
+                                                        className="flex items-center space-x-2"
+                                                    >
+                                                        <Checkbox
+                                                            id={id}
+                                                            checked={
+                                                                inclusionMode
+                                                                    ? !serviceExclusions.includes(
+                                                                          id
+                                                                      )
+                                                                    : serviceExclusions.includes(id)
+                                                            }
+                                                            onCheckedChange={(checked) => {
+                                                                const isChecked = checked === true;
+                                                                if (inclusionMode) {
+                                                                    if (isChecked) {
+                                                                        setServiceExclusions(
+                                                                            (prev) =>
+                                                                                prev.filter(
+                                                                                    (x) => x !== id
+                                                                                )
+                                                                        );
+                                                                    } else {
+                                                                        setServiceExclusions(
+                                                                            (prev) =>
+                                                                                prev.includes(id)
+                                                                                    ? prev
+                                                                                    : [...prev, id]
+                                                                        );
+                                                                    }
+                                                                } else {
+                                                                    handleExclusionChange(
+                                                                        id,
+                                                                        isChecked
+                                                                    );
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor={id}
+                                                            className="text-sm text-gray-700 cursor-pointer leading-tight"
+                                                        >
+                                                            {exclusionLabelById[id]}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </details>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">

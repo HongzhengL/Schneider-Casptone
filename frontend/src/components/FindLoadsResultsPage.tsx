@@ -149,6 +149,9 @@ export function FindLoadsResultsPage({
         if (filters.destinationRadius != null) {
             chips.push(`Dest radius ${filters.destinationRadius} mi`);
         }
+        if (filters.originRadius != null) {
+            chips.push(`Origin radius ${filters.originRadius} mi`);
+        }
 
         const formatRange = (from?: string | null, to?: string | null) => {
             if (!from && !to) return null;

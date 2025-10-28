@@ -1,3 +1,5 @@
+import { config } from './config/environment.js';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import { suggestedLoads } from './data/home.js';
@@ -12,15 +14,33 @@ import {
     appVersion,
 } from './data/driverPortal.js';
 import { defaultMetrics } from './data/metrics.js';
+import { authRouter } from './routes/auth.js';
+import { profilesRouter } from './routes/profiles.js';
+import { buildAuthGuard } from './middleware/auth.js';
+import { errorHandler, requestIdMiddleware } from './middleware/errorHandler.js';
 
 const app = express();
 
 app.use(
     cors({
-        origin: true,
+        origin: config.frontendUrl || true,
+        credentials: true,
     })
 );
+app.use(cookieParser());
 app.use(express.json());
+app.use(requestIdMiddleware);
+
+const supabaseConfigured = Boolean(config.supabase.url) && Boolean(process.env.SUPABASE_KEY);
+const authGuard = buildAuthGuard({
+    allowList: ['/health', '/auth/login', '/auth/signup', '/auth/logout'],
+    supabaseConfigured,
+});
+
+app.use('/api', authGuard);
+
+app.use('/api/auth', authRouter);
+app.use('/api/profiles', profilesRouter);
 
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -206,7 +226,9 @@ app.get('/api/settings/metrics', (_req, res) => {
     res.json(defaultMetrics);
 });
 
-const port = process.env.PORT ?? 4000;
+app.use(errorHandler);
+
+const port = Number(config.port) || 4000;
 
 app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);

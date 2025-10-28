@@ -1,6 +1,8 @@
 import type {
+    AuthResponse,
     CompletedRun,
     CompletedRunResponse,
+    CurrentUserResponse,
     DestinationOption,
     DriverPortalResponse,
     LoadRecord,
@@ -9,11 +11,14 @@ import type {
     Metric,
     NoticesResponse,
     SuggestedLoad,
+    Profile,
+    ProfileInput,
+    SignupResponse,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
 
-class ApiError extends Error {
+export class ApiError extends Error {
     constructor(
         message: string,
         public status: number
@@ -24,11 +29,18 @@ class ApiError extends Error {
 
 async function request<T>(path: string, init?: globalThis.RequestInit): Promise<T> {
     const url = `${API_BASE_URL}${path}`;
+    const headers = new Headers(init?.headers ?? {});
+    headers.set('Accept', 'application/json');
+
+    const hasBody = init?.body !== undefined && !(init.body instanceof FormData);
+    if (hasBody && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
     const response = await fetch(url, {
-        headers: {
-            Accept: 'application/json',
-        },
         ...init,
+        headers,
+        credentials: 'include',
     });
 
     if (!response.ok) {
@@ -36,7 +48,16 @@ async function request<T>(path: string, init?: globalThis.RequestInit): Promise<
         throw new ApiError(message, response.status);
     }
 
-    return response.json() as Promise<T>;
+    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+        return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) {
+        return undefined as T;
+    }
+
+    return JSON.parse(text) as T;
 }
 
 type SuggestedLoadsResponse = SuggestedLoad[] | { suggestedLoads?: SuggestedLoad[] };
@@ -155,4 +176,70 @@ export async function fetchDestinations(): Promise<DestinationOption[]> {
     return request<DestinationOption[]>('/destinations');
 }
 
-export { ApiError };
+// Profiles API
+export async function fetchProfiles(): Promise<Profile[]> {
+    return request<Profile[]>('/profiles');
+}
+
+export async function fetchProfile(id: string): Promise<Profile> {
+    return request<Profile>(`/profiles/${encodeURIComponent(id)}`);
+}
+
+export async function createProfile(input: ProfileInput): Promise<Profile> {
+    return request<Profile>('/profiles', {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+}
+
+export async function updateProfile(id: string, input: ProfileInput): Promise<Profile> {
+    return request<Profile>(`/profiles/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+    });
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+    await request<void>(`/profiles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// Helper that returns the filters from a profile so callers can apply them to UI state
+export async function applyProfile(id: string): Promise<LoadSearchFilters> {
+    const profile = await fetchProfile(id);
+    return profile.filters;
+}
+
+// Auth API
+export async function login(
+    email: string,
+    password: string,
+    rememberMe: boolean
+): Promise<AuthResponse> {
+    return request<AuthResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, rememberMe }),
+    });
+}
+
+export async function logout(): Promise<void> {
+    await request('/auth/logout', {
+        method: 'POST',
+    });
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUserResponse> {
+    return request<CurrentUserResponse>('/auth/me');
+}
+
+export interface SignupPayload {
+    email: string;
+    password: string;
+    metadata?: Record<string, unknown>;
+}
+
+export async function signUp(payload: SignupPayload): Promise<SignupResponse> {
+    return request<SignupResponse>('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}

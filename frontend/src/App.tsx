@@ -8,8 +8,19 @@ import { SettingsPage } from './components/SettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
-import { fetchCustomMetrics, ApiError } from './services/api';
-import type { LoadSearchFilters, Metric } from './types/api';
+import { LoginPage } from './components/LoginPage';
+import { SignUpPage } from './components/SignUpPage';
+import { useAuth } from './contexts/AuthContext';
+import {
+    fetchCustomMetrics,
+    ApiError,
+    fetchProfiles,
+    createProfile,
+    updateProfile,
+    deleteProfile as apiDeleteProfile,
+    applyProfile as apiApplyProfile,
+} from './services/api';
+import type { LoadSearchFilters, Metric, Profile } from './types/api';
 
 const fallbackMetrics: Metric[] = [
     { id: 'distance', label: 'Distance', enabled: true },
@@ -27,6 +38,7 @@ const createDefaultLoadFilters = (): LoadSearchFilters => {
         serviceExclusions: [],
         confirmedOnly: false,
         standardNetworkOnly: false,
+        originRadius: null,
         destination: null,
         destinationState: null,
         destinationRadius: null,
@@ -37,18 +49,51 @@ const createDefaultLoadFilters = (): LoadSearchFilters => {
     };
 };
 
+const normalizeFilters = (
+    incoming: Partial<LoadSearchFilters> | null | undefined
+): LoadSearchFilters => {
+    const defaults = createDefaultLoadFilters();
+    return {
+        ...defaults,
+        ...(incoming ?? {}),
+        serviceExclusions: incoming?.serviceExclusions ?? defaults.serviceExclusions,
+        originRadius: incoming?.originRadius ?? defaults.originRadius,
+    };
+};
+
+const normalizeProfile = (profile: Profile): Profile => ({
+    ...profile,
+    filters: normalizeFilters(profile.filters),
+});
+
 export default function App() {
     const [currentPage, setCurrentPage] = useState('home');
     const [customMetrics, setCustomMetrics] = useState<Metric[]>(fallbackMetrics);
     const [defaultMetrics, setDefaultMetrics] = useState<Metric[]>(fallbackMetrics);
     const [metricsError, setMetricsError] = useState<string | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(true);
+    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [profilesError, setProfilesError] = useState<string | null>(null);
+    const [profilesLoading, setProfilesLoading] = useState(true);
     const [loadFilters, setLoadFilters] = useState<LoadSearchFilters>(() =>
         createDefaultLoadFilters()
     );
+    const { isAuthenticated, isInitializing } = useAuth();
+    const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+    const [loginEmailPrefill, setLoginEmailPrefill] = useState('');
+    const [loginFlashMessage, setLoginFlashMessage] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            setMetricsLoading(false);
+            setMetricsError(null);
+            setCustomMetrics(fallbackMetrics);
+            setDefaultMetrics(fallbackMetrics);
+            return;
+        }
+
         let isMounted = true;
+        setMetricsLoading(true);
 
         const loadMetrics = async () => {
             try {
@@ -78,7 +123,72 @@ export default function App() {
         return () => {
             isMounted = false;
         };
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            setAuthView('login');
+            setLoginEmailPrefill('');
+            setLoginFlashMessage(null);
+        }
+    }, [isAuthenticated]);
+
+    // Load saved profiles (search + advanced criteria)
+    useEffect(() => {
+        let isMounted = true;
+        const loadProfiles = async () => {
+            try {
+                const list = await fetchProfiles();
+                if (!isMounted) return;
+                const normalizedList = list.map((profile) => normalizeProfile(profile));
+                setProfiles(normalizedList);
+            } catch (error) {
+                if (!isMounted) return;
+                // If the backend doesn't implement /profiles yet, quietly ignore 404
+                if (error instanceof ApiError && error.status === 404) {
+                    setProfiles([]);
+                    setProfilesError(null);
+                } else {
+                    console.error(error);
+                    setProfilesError('Unable to load profiles.');
+                    setProfiles([]);
+                }
+            } finally {
+                if (isMounted) setProfilesLoading(false);
+            }
+        };
+        loadProfiles();
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
+    // Profile management helpers (can be passed to pages later)
+    const handleCreateProfile = async (name: string) => {
+        const newProfile = normalizeProfile(await createProfile({ name, filters: loadFilters }));
+        setProfiles((prev) => [newProfile, ...prev]);
+        return newProfile;
+    };
+
+    const handleUpdateProfile = async (id: string, name: string, filters?: LoadSearchFilters) => {
+        const next = normalizeProfile(
+            await updateProfile(id, { name, filters: filters ?? loadFilters })
+        );
+        setProfiles((prev) => prev.map((p) => (p.id === id ? next : p)));
+        return next;
+    };
+
+    const handleDeleteProfile = async (id: string) => {
+        await apiDeleteProfile(id);
+        setProfiles((prev) => prev.filter((p) => p.id !== id));
+    };
+
+    const handleApplyProfile = async (id: string) => {
+        const filters = await apiApplyProfile(id);
+        const normalizedFilters = normalizeFilters(filters);
+        setLoadFilters(normalizedFilters);
+        return normalizedFilters;
+    };
 
     const renderCurrentPage = () => {
         switch (currentPage) {
@@ -93,6 +203,13 @@ export default function App() {
                         filters={loadFilters}
                         onFiltersChange={setLoadFilters}
                         createDefaultFilters={createDefaultLoadFilters}
+                        profiles={profiles}
+                        profilesLoading={profilesLoading}
+                        profilesError={profilesError}
+                        onCreateProfile={handleCreateProfile}
+                        onUpdateProfile={handleUpdateProfile}
+                        onDeleteProfile={handleDeleteProfile}
+                        onApplyProfile={handleApplyProfile}
                     />
                 );
             case 'findloadsresults':
@@ -123,6 +240,43 @@ export default function App() {
                 return <HomePage onNavigate={setCurrentPage} />;
         }
     };
+
+    if (isInitializing) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <p className="text-gray-500 text-sm">Loading your session…</p>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        if (authView === 'signup') {
+            return (
+                <SignUpPage
+                    onNavigateToLogin={(options) => {
+                        setAuthView('login');
+                        if (options?.email) {
+                            setLoginEmailPrefill(options.email);
+                        }
+                        if (options?.message) {
+                            setLoginFlashMessage(options.message);
+                        }
+                    }}
+                />
+            );
+        }
+
+        return (
+            <LoginPage
+                initialEmail={loginEmailPrefill}
+                onSwitchToSignUp={() => {
+                    setAuthView('signup');
+                    setLoginFlashMessage(null);
+                }}
+                flashMessage={loginFlashMessage}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">

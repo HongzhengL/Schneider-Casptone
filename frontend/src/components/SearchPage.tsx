@@ -1,18 +1,40 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bell, Truck, SlidersHorizontal, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Bell, Truck, SlidersHorizontal, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { toast } from 'sonner';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from './ui/dialog';
 import { fetchDestinations } from '../services/api';
-import type { AdvancedFilterValues, DestinationOption, LoadSearchFilters } from '../types/api';
+import type {
+    AdvancedFilterValues,
+    DestinationOption,
+    LoadSearchFilters,
+    Profile,
+} from '../types/api';
 
 interface SearchPageProps {
     onNavigate: (page: string) => void;
     filters: LoadSearchFilters;
     onFiltersChange: (filters: LoadSearchFilters) => void;
     createDefaultFilters: () => LoadSearchFilters;
+    // Profiles management (optional)
+    profiles?: Profile[];
+    profilesLoading?: boolean;
+    profilesError?: string | null;
+    onCreateProfile?: (name: string) => Promise<Profile>;
+    onUpdateProfile?: (id: string, name: string, filters?: LoadSearchFilters) => Promise<Profile>;
+    onDeleteProfile?: (id: string) => Promise<void>;
+    onApplyProfile?: (id: string) => Promise<LoadSearchFilters>;
 }
 
 const formatDate = (value: string) => {
@@ -51,16 +73,46 @@ export function SearchPage({
     filters,
     onFiltersChange,
     createDefaultFilters,
+    profiles = [],
+    profilesLoading = false,
+    profilesError = null,
+    onCreateProfile,
+    onUpdateProfile,
+    onDeleteProfile,
+    onApplyProfile,
 }: SearchPageProps) {
-    const [originRadius, setOriginRadius] = useState(500);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [selectStates, setSelectStates] = useState(Boolean(filters.destinationState));
     const [destinations, setDestinations] = useState<DestinationOption[]>([]);
     const [destinationsLoading, setDestinationsLoading] = useState(true);
     const [destinationsError, setDestinationsError] = useState<string | null>(null);
     const [destinationQuery, setDestinationQuery] = useState<string>(filters.destination ?? '');
+    // Origin search UI state (mirrors destination)
+    const [originQuery, setOriginQuery] = useState<string>('');
+    const [originOpen, setOriginOpen] = useState(false);
+    const [originHighlighted, setOriginHighlighted] = useState(0);
+    const ORIG_PAGE_SIZE = 10;
+    const [origPage, setOrigPage] = useState(0);
+    const [selectOriginStates, setSelectOriginStates] = useState(false);
+    const [originState, setOriginState] = useState<string | null>(null);
     const [destOpen, setDestOpen] = useState(false);
     const [destHighlighted, setDestHighlighted] = useState(0);
+    const DEST_PAGE_SIZE = 10;
+    const [destPage, setDestPage] = useState(0);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const [showProfilesPanel, setShowProfilesPanel] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'save' | 'delete' | null>(null);
+    // Profiles UI state
+    const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+    const [newProfileName, setNewProfileName] = useState('');
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [confirmProcessing, setConfirmProcessing] = useState(false);
+    const [removedProfileIds, setRemovedProfileIds] = useState<string[]>([]);
+    const [profileFeedback, setProfileFeedback] = useState<{
+        type: 'success' | 'error';
+        message: string;
+    } | null>(null);
+    const [renameValue, setRenameValue] = useState('');
 
     const uiDefaultRanges = useMemo(() => {
         const today = new Date();
@@ -79,6 +131,20 @@ export function SearchPage({
     useEffect(() => {
         setSelectStates(Boolean(filters.destinationState));
     }, [filters.destinationState]);
+
+    // When profiles load, if none selected, keep null. If an applied profile changed externally,
+    // attempt to keep rename input in sync.
+    useEffect(() => {
+        if (!activeProfileId) return;
+        const p = profiles.find((x) => x.id === activeProfileId);
+        if (p) setRenameValue(p.name);
+    }, [profiles, activeProfileId]);
+
+    useEffect(() => {
+        setRemovedProfileIds((prev) =>
+            prev.filter((id) => profiles.some((profile) => profile.id === id))
+        );
+    }, [profiles]);
 
     useEffect(() => {
         let mounted = true;
@@ -117,6 +183,65 @@ export function SearchPage({
         );
     }, [destinations, destinationQuery]);
 
+    const visibleDestinations = useMemo(() => {
+        const start = destPage * DEST_PAGE_SIZE;
+        const end = start + DEST_PAGE_SIZE;
+        return filteredDestinations.slice(start, end);
+    }, [filteredDestinations, destPage]);
+
+    useEffect(() => {
+        // Clamp highlighted index to visible items
+        if (destHighlighted >= visibleDestinations.length) {
+            setDestHighlighted(visibleDestinations.length > 0 ? visibleDestinations.length - 1 : 0);
+        }
+    }, [visibleDestinations.length]);
+
+    const totalDestPages = useMemo(
+        () => Math.max(1, Math.ceil(filteredDestinations.length / DEST_PAGE_SIZE)),
+        [filteredDestinations.length]
+    );
+
+    // Origin filtered/visible lists mirror destination logic
+    const filteredOrigins = useMemo(() => {
+        const q = originQuery.trim().toLowerCase();
+        if (!q) return destinations;
+        return destinations.filter((o) =>
+            [o.label, o.city, o.state].some((s) => (s ?? '').toLowerCase().includes(q))
+        );
+    }, [destinations, originQuery]);
+
+    const visibleOrigins = useMemo(() => {
+        const start = origPage * ORIG_PAGE_SIZE;
+        const end = start + ORIG_PAGE_SIZE;
+        return filteredOrigins.slice(start, end);
+    }, [filteredOrigins, origPage]);
+
+    useEffect(() => {
+        if (originHighlighted >= visibleOrigins.length) {
+            setOriginHighlighted(visibleOrigins.length > 0 ? visibleOrigins.length - 1 : 0);
+        }
+    }, [visibleOrigins.length]);
+
+    const totalOrigPages = useMemo(
+        () => Math.max(1, Math.ceil(filteredOrigins.length / ORIG_PAGE_SIZE)),
+        [filteredOrigins.length]
+    );
+
+    const goToNextOrigPage = () => {
+        setOrigPage((p) => (p + 1 < totalOrigPages ? p + 1 : p));
+        setOriginHighlighted(0);
+    };
+
+    const goToPrevOrigPage = () => {
+        setOrigPage((p) => (p - 1 >= 0 ? p - 1 : p));
+        setOriginHighlighted(0);
+    };
+
+    const goToNextPage = () => {
+        setDestPage((p) => (p + 1 < totalDestPages ? p + 1 : p));
+        setDestHighlighted(0);
+    };
+
     const pickupRange = {
         from: filters.pickupDateFrom ?? uiDefaultRanges.pickup.from,
         to: filters.pickupDateTo ?? uiDefaultRanges.pickup.to,
@@ -127,6 +252,7 @@ export function SearchPage({
         to: filters.dropDateTo ?? uiDefaultRanges.drop.to,
     };
 
+    const originRadiusValue = filters.originRadius ?? 500;
     const destinationRadiusValue = filters.destinationRadius ?? 500;
 
     // Preset date ranges: helpers to quickly set from/to
@@ -185,10 +311,16 @@ export function SearchPage({
     };
 
     const resetFilters = () => {
-        setOriginRadius(500);
         const defaults = createDefaultFilters();
         setSelectStates(Boolean(defaults.destinationState));
         onFiltersChange(defaults);
+        // Reset origin UI-only state
+        setOriginQuery('');
+        setOriginOpen(false);
+        setOriginHighlighted(0);
+        setOrigPage(0);
+        setSelectOriginStates(false);
+        setOriginState(null);
     };
 
     const handleAdvancedApply = (values: AdvancedFilterValues) => {
@@ -255,6 +387,20 @@ export function SearchPage({
         setDestOpen(false);
     };
 
+    // Origin selection handler (UI-only)
+    const selectOrigin = (opt: DestinationOption | null) => {
+        if (!opt) {
+            setOriginQuery('');
+            setOriginOpen(false);
+            return;
+        }
+        setOriginQuery(opt.label);
+        setOriginOpen(false);
+        if (selectOriginStates) {
+            setOriginState(opt.state ?? null);
+        }
+    };
+
     useEffect(() => {
         setDestinationQuery(filters.destination ?? '');
     }, [filters.destination]);
@@ -270,6 +416,13 @@ export function SearchPage({
         onFiltersChange({
             ...filters,
             destinationRadius: value,
+        });
+    };
+
+    const handleOriginRadiusChange = (value: number) => {
+        onFiltersChange({
+            ...filters,
+            originRadius: value,
         });
     };
 
@@ -294,9 +447,142 @@ export function SearchPage({
         });
     };
 
+    // Origin toggle for state auto-selection (UI-only)
+    const handleOriginToggle = (checked: boolean | string) => {
+        const enabled = checked === true;
+        setSelectOriginStates(enabled);
+        if (!enabled) {
+            setOriginState(null);
+        } else if (originQuery) {
+            const match = destinations.find(
+                (option) => option.label.toLowerCase() === originQuery.toLowerCase()
+            );
+            setOriginState(match?.state ?? null);
+        }
+    };
+
     const advancedButtonLabel = `Advanced Filters${
         activeAdvancedFilters ? ` (${activeAdvancedFilters})` : ''
     }`;
+
+    // Compare current filters to a given profile's filters
+    const areFiltersEqual = (a: LoadSearchFilters, b: LoadSearchFilters) => {
+        const arrEq = (x: string[], y: string[]) =>
+            x.length === y.length && x.every((v, i) => v === y[i]);
+        return (
+            a.minLoadedRpm === b.minLoadedRpm &&
+            a.minDistance === b.minDistance &&
+            a.maxDistance === b.maxDistance &&
+            arrEq(a.serviceExclusions, b.serviceExclusions) &&
+            a.confirmedOnly === b.confirmedOnly &&
+            a.standardNetworkOnly === b.standardNetworkOnly &&
+            a.originRadius === b.originRadius &&
+            a.destination === b.destination &&
+            a.destinationState === b.destinationState &&
+            a.destinationRadius === b.destinationRadius &&
+            a.pickupDateFrom === b.pickupDateFrom &&
+            a.pickupDateTo === b.pickupDateTo &&
+            a.dropDateFrom === b.dropDateFrom &&
+            a.dropDateTo === b.dropDateTo
+        );
+    };
+
+    const visibleProfiles = useMemo(
+        () => profiles.filter((profile) => !removedProfileIds.includes(profile.id)),
+        [profiles, removedProfileIds]
+    );
+
+    const activeProfile = activeProfileId
+        ? (visibleProfiles.find((p) => p.id === activeProfileId) ?? null)
+        : null;
+    const isProfileModified = activeProfile
+        ? !areFiltersEqual(filters, activeProfile.filters)
+        : false;
+
+    const trimmedNewProfileName = newProfileName.trim();
+    const isDeleteConfirmation = pendingAction === 'delete';
+    const isSaveConfirmation = pendingAction === 'save';
+    const confirmDisabled =
+        confirmProcessing ||
+        (isSaveConfirmation && (!onCreateProfile || !trimmedNewProfileName)) ||
+        (isDeleteConfirmation && (!onDeleteProfile || !activeProfileId));
+    const confirmTitle = isDeleteConfirmation
+        ? 'Delete profile?'
+        : isSaveConfirmation
+          ? 'Save new profile?'
+          : 'Confirm action';
+    const confirmMessage = isDeleteConfirmation
+        ? `Profile "${activeProfile?.name ?? 'Selected profile'}" will be removed permanently.`
+        : isSaveConfirmation
+          ? `Create a profile named "${trimmedNewProfileName}" using your current filters.`
+          : '';
+    const confirmButtonLabel = isDeleteConfirmation ? 'Yes, delete profile' : 'Save profile';
+    const confirmVariant = isDeleteConfirmation ? 'destructive' : 'default';
+
+    const handleConfirmDialogChange = (open: boolean) => {
+        setConfirmDialogOpen(open);
+        if (!open) {
+            setPendingAction(null);
+        }
+    };
+
+    const handleConfirmAction = async () => {
+        if (confirmProcessing || !pendingAction) {
+            return;
+        }
+
+        const action = pendingAction;
+        const profileIdForDelete = activeProfileId;
+        const profileNameForDelete = activeProfile?.name ?? 'Profile';
+
+        setConfirmProcessing(true);
+
+        try {
+            if (action === 'save') {
+                if (!onCreateProfile || !trimmedNewProfileName) {
+                    throw new Error('Enter a profile name to save.');
+                }
+                const created = await onCreateProfile(trimmedNewProfileName);
+                setActiveProfileId(created.id);
+                setRenameValue(created.name);
+                setNewProfileName('');
+                toast.success(`Profile "${created.name}" saved.`);
+                setProfileFeedback({
+                    type: 'success',
+                    message: `Profile "${created.name}" saved successfully.`,
+                });
+            } else if (action === 'delete') {
+                if (!profileIdForDelete || !onDeleteProfile) {
+                    throw new Error('Select a profile to delete.');
+                }
+                await onDeleteProfile(profileIdForDelete);
+                setRemovedProfileIds((prev) => [...prev, profileIdForDelete]);
+                setActiveProfileId(null);
+                setRenameValue('');
+                toast.success(`Profile "${profileNameForDelete}" deleted.`);
+                setProfileFeedback({
+                    type: 'success',
+                    message: `Profile "${profileNameForDelete}" deleted successfully.`,
+                });
+            }
+
+            setConfirmDialogOpen(false);
+            setPendingAction(null);
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Unable to complete the action.';
+            toast.error(message);
+            setProfileFeedback({ type: 'error', message });
+        } finally {
+            setConfirmProcessing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!showProfilesPanel) {
+            setProfileFeedback(null);
+        }
+    }, [showProfilesPanel]);
 
     return (
         <div className="p-4 space-y-6">
@@ -316,14 +602,257 @@ export function SearchPage({
                 <p className="text-orange-100 text-sm mt-1">Find your next assignment</p>
             </div>
 
+            {/* Profile Selector */}
+            <div className="p-3 bg-white rounded-lg border">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700 w-24">Profile</label>
+                    <select
+                        className="flex-1 border rounded px-2 py-2 text-sm"
+                        value={
+                            activeProfileId && removedProfileIds.includes(activeProfileId)
+                                ? ''
+                                : activeProfileId || ''
+                        }
+                        disabled={profilesLoading || visibleProfiles.length === 0}
+                        onChange={async (e) => {
+                            const selectedValue = e.target.value;
+
+                            if (selectedValue === '') {
+                                // User selected "None" - reset everything to defaults
+                                setActiveProfileId(null);
+                                setRenameValue('');
+                                resetFilters();
+                            } else {
+                                // User selected a profile
+                                setActiveProfileId(selectedValue);
+                                if (onApplyProfile) {
+                                    await onApplyProfile(selectedValue);
+                                }
+                                const p = visibleProfiles.find((x) => x.id === selectedValue);
+                                setRenameValue(p?.name ?? '');
+                            }
+                        }}
+                    >
+                        <option value="">None</option>
+                        {visibleProfiles.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Origin Search (mirrors Destination) */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl">Pickup</h3>
+                    <Button
+                        variant="ghost"
+                        className="text-orange-500 hover:text-orange-600 px-2"
+                        onClick={() => {
+                            setOriginQuery('');
+                            setOriginOpen(false);
+                            setOriginHighlighted(0);
+                            setOrigPage(0);
+                            setSelectOriginStates(false);
+                            setOriginState(null);
+                        }}
+                    >
+                        Reset
+                    </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <span>Origin</span>
+                    <div className="flex items-center gap-2">
+                        <span>Select States</span>
+                        <Switch checked={selectOriginStates} onCheckedChange={handleOriginToggle} />
+                    </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-center gap-3">
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            role="combobox"
+                            aria-expanded={originOpen}
+                            aria-controls="origins-listbox"
+                            aria-activedescendant={
+                                originOpen && visibleOrigins[originHighlighted]
+                                    ? `origin-option-${originHighlighted}`
+                                    : undefined
+                            }
+                            aria-autocomplete="list"
+                            value={originQuery}
+                            onChange={(e) => {
+                                setOriginQuery(e.target.value);
+                                setOriginOpen(true);
+                                setOriginHighlighted(0);
+                                setOrigPage(0);
+                            }}
+                            onFocus={() => setOriginOpen(true)}
+                            onKeyDown={(e) => {
+                                if (!visibleOrigins.length) return;
+                                if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted((i) => (i + 1) % visibleOrigins.length);
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setOriginOpen(true);
+                                    setOriginHighlighted(
+                                        (i) =>
+                                            (i - 1 + visibleOrigins.length) % visibleOrigins.length
+                                    );
+                                } else if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const opt = visibleOrigins[originHighlighted];
+                                    if (opt) selectOrigin(opt);
+                                } else if (e.key === 'Escape') {
+                                    setOriginOpen(false);
+                                }
+                            }}
+                            placeholder={
+                                destinationsLoading
+                                    ? 'Loading origins...'
+                                    : destinationsError
+                                      ? 'Unable to load origins'
+                                      : 'Search origins'
+                            }
+                            disabled={destinationsLoading || Boolean(destinationsError)}
+                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                        />
+                        {originQuery && !destinationsLoading && !destinationsError && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => selectOrigin(null)}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+
+                    {originOpen && !destinationsLoading && !destinationsError && (
+                        <div
+                            id="origins-listbox"
+                            role="listbox"
+                            aria-label="Origin options"
+                            className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm"
+                            onTouchStart={(e) => {
+                                const touch = e.changedTouches?.[0];
+                                if (touch) {
+                                    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                                }
+                            }}
+                            onTouchEnd={(e) => {
+                                const start = touchStartRef.current;
+                                const touch = e.changedTouches?.[0];
+                                if (start && touch) {
+                                    const dx = touch.clientX - start.x;
+                                    const dy = touch.clientY - start.y;
+                                    const isHorizontal =
+                                        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30;
+                                    if (isHorizontal) {
+                                        if (dx < 0) {
+                                            goToNextOrigPage();
+                                        } else {
+                                            goToPrevOrigPage();
+                                        }
+                                    }
+                                }
+                                touchStartRef.current = null;
+                            }}
+                        >
+                            {visibleOrigins.map((option, idx) => (
+                                <div
+                                    key={option.label}
+                                    id={`origin-option-${idx}`}
+                                    role="option"
+                                    aria-selected={idx === originHighlighted}
+                                    className={`px-3 py-2 text-sm cursor-pointer ${
+                                        idx === originHighlighted
+                                            ? 'bg-orange-50 text-orange-700'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                    onMouseEnter={() => setOriginHighlighted(idx)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        selectOrigin(option);
+                                    }}
+                                >
+                                    {option.label}
+                                </div>
+                            ))}
+                            {filteredOrigins.length > ORIG_PAGE_SIZE && (
+                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                    <span>
+                                        Page {origPage + 1} of {totalOrigPages}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={origPage === 0}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToPrevOrigPage();
+                                            }}
+                                        >
+                                            Prev
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={origPage + 1 >= totalOrigPages}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToNextOrigPage();
+                                            }}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {destinationsLoading && <p className="text-xs text-gray-500">Loading origins...</p>}
+                {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
+
+                {selectOriginStates && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <span className="text-sm text-gray-600">Origin state</span>
+                        <select
+                            value={originState ?? ''}
+                            onChange={(event) => setOriginState(event.target.value || null)}
+                            className="border rounded-md px-2 py-2 text-sm text-gray-700"
+                        >
+                            <option value="">All states</option>
+                            {stateOptions.map((state) => (
+                                <option key={state} value={state}>
+                                    {state}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
+
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <span className="text-gray-700">Origin Radius</span>
-                    <span className="text-orange-600 font-semibold">{originRadius} mi</span>
+                    <span className="text-orange-600 font-semibold">{originRadiusValue} mi</span>
                 </div>
                 <Slider
-                    value={[originRadius]}
-                    onValueChange={(value) => setOriginRadius(value[0])}
+                    value={[originRadiusValue]}
+                    onValueChange={(value) => handleOriginRadiusChange(value[0])}
                     min={25}
                     max={500}
                     step={25}
@@ -336,7 +865,8 @@ export function SearchPage({
                     <h3 className="text-gray-600">Pick-up Date</h3>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">
-                            {formatDate(pickupRange.from).dateStr} – {formatDate(pickupRange.to).dateStr}
+                            {formatDate(pickupRange.from).dateStr} –{' '}
+                            {formatDate(pickupRange.to).dateStr}
                         </span>
                         <div className="flex flex-wrap items-center gap-1">
                             {presetDefs.map((p) => (
@@ -409,7 +939,7 @@ export function SearchPage({
                             aria-expanded={destOpen}
                             aria-controls="destinations-listbox"
                             aria-activedescendant={
-                                destOpen && filteredDestinations[destHighlighted]
+                                destOpen && visibleDestinations[destHighlighted]
                                     ? `dest-option-${destHighlighted}`
                                     : undefined
                             }
@@ -419,23 +949,26 @@ export function SearchPage({
                                 setDestinationQuery(e.target.value);
                                 setDestOpen(true);
                                 setDestHighlighted(0);
+                                setDestPage(0);
                             }}
                             onFocus={() => setDestOpen(true)}
                             onKeyDown={(e) => {
-                                if (!filteredDestinations.length) return;
+                                if (!visibleDestinations.length) return;
                                 if (e.key === 'ArrowDown') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted((i) => (i + 1) % filteredDestinations.length);
+                                    setDestHighlighted((i) => (i + 1) % visibleDestinations.length);
                                 } else if (e.key === 'ArrowUp') {
                                     e.preventDefault();
                                     setDestOpen(true);
-                                    setDestHighlighted((i) =>
-                                        (i - 1 + filteredDestinations.length) % filteredDestinations.length
+                                    setDestHighlighted(
+                                        (i) =>
+                                            (i - 1 + visibleDestinations.length) %
+                                            visibleDestinations.length
                                     );
                                 } else if (e.key === 'Enter') {
                                     e.preventDefault();
-                                    const opt = filteredDestinations[destHighlighted];
+                                    const opt = visibleDestinations[destHighlighted];
                                     if (opt) selectDestination(opt);
                                 } else if (e.key === 'Escape') {
                                     setDestOpen(false);
@@ -445,8 +978,8 @@ export function SearchPage({
                                 destinationsLoading
                                     ? 'Loading destinations...'
                                     : destinationsError
-                                    ? 'Unable to load destinations'
-                                    : 'Search destinations'
+                                      ? 'Unable to load destinations'
+                                      : 'Search destinations'
                             }
                             disabled={destinationsLoading || Boolean(destinationsError)}
                             className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
@@ -467,8 +1000,62 @@ export function SearchPage({
                             id="destinations-listbox"
                             role="listbox"
                             className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
+                            onTouchStart={(e) => {
+                                const t = e.changedTouches[0];
+                                touchStartRef.current = { x: t.clientX, y: t.clientY };
+                            }}
+                            onTouchEnd={(e) => {
+                                const start = touchStartRef.current;
+                                touchStartRef.current = null;
+                                if (!start) return;
+                                const t = e.changedTouches[0];
+                                const dy = t.clientY - start.y;
+                                const dx = t.clientX - start.x;
+                                const absX = Math.abs(dx);
+                                const absY = Math.abs(dy);
+                                const V_THRESH = 30;
+                                // Vertical swipe: move selection (and select)
+                                if (absY > V_THRESH && absY > absX * 1.2) {
+                                    if (dy < 0) {
+                                        // swipe up → next item
+                                        if (visibleDestinations.length === 0) return;
+                                        if (destHighlighted < visibleDestinations.length - 1) {
+                                            const idx = destHighlighted + 1;
+                                            setDestHighlighted(idx);
+                                            selectDestination(visibleDestinations[idx]);
+                                        } else if (destPage + 1 < totalDestPages) {
+                                            goToNextPage();
+                                            // after page change, select first of next page
+                                            setTimeout(() => {
+                                                selectDestination(visibleDestinations[0] ?? null);
+                                            }, 0);
+                                        }
+                                    } else {
+                                        // swipe down → prev item
+                                        if (visibleDestinations.length === 0) return;
+                                        if (destHighlighted > 0) {
+                                            const idx = destHighlighted - 1;
+                                            setDestHighlighted(idx);
+                                            selectDestination(visibleDestinations[idx]);
+                                        } else if (destPage > 0) {
+                                            goToPrevPage();
+                                            // after page change, select last of prev page
+                                            setTimeout(() => {
+                                                const lastIdx = Math.min(
+                                                    DEST_PAGE_SIZE - 1,
+                                                    visibleDestinations.length - 1
+                                                );
+                                                selectDestination(
+                                                    visibleDestinations[lastIdx] ?? null
+                                                );
+                                            }, 0);
+                                        }
+                                    }
+                                    return;
+                                }
+                            }}
                         >
-                            {filteredDestinations.map((option, idx) => (
+                            {visibleDestinations.map((option, idx) => (
                                 <div
                                     key={option.label}
                                     id={`dest-option-${idx}`}
@@ -488,6 +1075,39 @@ export function SearchPage({
                                     {option.label}
                                 </div>
                             ))}
+                            {filteredDestinations.length > DEST_PAGE_SIZE && (
+                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                    <span>
+                                        Page {destPage + 1} of {totalDestPages}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={destPage === 0}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToPrevPage();
+                                            }}
+                                        >
+                                            Prev
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={destPage + 1 >= totalDestPages}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                goToNextPage();
+                                            }}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -537,7 +1157,8 @@ export function SearchPage({
                     <h3 className="text-gray-600">Drop Date</h3>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">
-                            {formatDate(dropRange.from).dateStr} – {formatDate(dropRange.to).dateStr}
+                            {formatDate(dropRange.from).dateStr} –{' '}
+                            {formatDate(dropRange.to).dateStr}
                         </span>
                         <div className="flex flex-wrap items-center gap-1">
                             {presetDefs.map((p) => (
@@ -614,6 +1235,8 @@ export function SearchPage({
                     <Button
                         variant="outline"
                         className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        onClick={() => setShowProfilesPanel(true)}
+                        aria-label="Open search profiles panel to save or manage profiles"
                     >
                         Save Search
                     </Button>
@@ -634,6 +1257,290 @@ export function SearchPage({
                     setShowAdvancedFilters(false);
                 }}
             />
+
+            {/* Profiles Panel */}
+            <Dialog open={showProfilesPanel} onOpenChange={setShowProfilesPanel}>
+                <DialogContent
+                    className="w-full max-w-md sm:max-w-md p-6"
+                    aria-describedby="profiles-panel-description"
+                >
+                    <DialogHeader>
+                        <DialogTitle id="profiles-panel-title" className="text-lg">
+                            Search Profiles
+                        </DialogTitle>
+                        <DialogDescription id="profiles-panel-description" className="sr-only">
+                            Manage your saved search profiles. Load existing profiles, update or
+                            delete them, or save your current search filters as a new profile.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        {profilesError && (
+                            <div
+                                role="alert"
+                                aria-live="assertive"
+                                className="bg-red-50 border border-red-200 text-red-700 text-xs rounded p-2"
+                            >
+                                {profilesError}
+                            </div>
+                        )}
+                        {profileFeedback && (
+                            <div
+                                role="status"
+                                aria-live="polite"
+                                className={`flex items-center gap-2 text-xs rounded p-2 border ${
+                                    profileFeedback.type === 'error'
+                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                        : 'bg-green-50 border-green-200 text-green-700'
+                                }`}
+                            >
+                                {profileFeedback.type === 'error' ? (
+                                    <AlertCircle className="w-4 h-4" />
+                                ) : (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                )}
+                                <span>{profileFeedback.message}</span>
+                            </div>
+                        )}
+
+                        {/* Load Profile Section */}
+                        <div>
+                            <label
+                                htmlFor="load-profile-select"
+                                className="block text-sm font-semibold text-gray-800 mb-2"
+                            >
+                                Load Profile
+                            </label>
+                            <select
+                                id="load-profile-select"
+                                className="w-full border rounded px-3 py-2 text-sm bg-white"
+                                value={
+                                    activeProfileId && removedProfileIds.includes(activeProfileId)
+                                        ? ''
+                                        : activeProfileId || ''
+                                }
+                                disabled={profilesLoading || visibleProfiles.length === 0}
+                                aria-label="Select a saved search profile to load"
+                                aria-describedby="load-profile-status"
+                                onChange={async (e) => {
+                                    const selectedValue = e.target.value;
+
+                                    if (selectedValue === '') {
+                                        // User selected "None" - reset everything to defaults
+                                        setActiveProfileId(null);
+                                        setRenameValue('');
+                                        resetFilters();
+                                    } else {
+                                        // User selected a profile
+                                        setActiveProfileId(selectedValue);
+                                        if (onApplyProfile) {
+                                            await onApplyProfile(selectedValue);
+                                        }
+                                        const p = visibleProfiles.find(
+                                            (x) => x.id === selectedValue
+                                        );
+                                        setRenameValue(p?.name ?? '');
+                                    }
+                                }}
+                            >
+                                <option value="">
+                                    {visibleProfiles.length === 0
+                                        ? 'No saved profiles'
+                                        : 'Select a profile...'}
+                                </option>
+                                {visibleProfiles.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {profilesLoading && (
+                                <p
+                                    id="load-profile-status"
+                                    className="text-xs text-gray-500 mt-1"
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    Loading profiles...
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Active Profile Status */}
+                        {activeProfile && (
+                            <div
+                                className="bg-blue-50 border border-blue-200 rounded p-3"
+                                role="region"
+                                aria-labelledby="active-profile-heading"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p
+                                            id="active-profile-heading"
+                                            className="text-xs text-gray-600"
+                                        >
+                                            Active Profile
+                                        </p>
+                                        <p
+                                            className="text-sm font-semibold text-gray-800"
+                                            aria-label={`Current active profile: ${activeProfile.name}`}
+                                        >
+                                            {activeProfile.name}
+                                        </p>
+                                    </div>
+                                    {isProfileModified && (
+                                        <span
+                                            className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded"
+                                            role="status"
+                                            aria-label="Profile has been modified since last save"
+                                        >
+                                            Modified
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Update/Delete Actions for Active Profile */}
+                                <div className="space-y-2">
+                                    {isProfileModified && (
+                                        <Button
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                                            onClick={async () => {
+                                                if (!activeProfileId || !onUpdateProfile) return;
+                                                await onUpdateProfile(
+                                                    activeProfileId,
+                                                    renameValue.trim(),
+                                                    filters
+                                                );
+                                            }}
+                                            aria-label={`Update ${activeProfile.name} with current filter settings`}
+                                        >
+                                            Update Profile with Current Filters
+                                        </Button>
+                                    )}
+
+                                    <div className="flex gap-2">
+                                        <label htmlFor="rename-profile-input" className="sr-only">
+                                            Rename profile
+                                        </label>
+                                        <Input
+                                            id="rename-profile-input"
+                                            placeholder="New profile name"
+                                            value={renameValue}
+                                            onChange={(e) => setRenameValue(e.target.value)}
+                                            className="flex-1 text-sm"
+                                            aria-label={`Rename ${activeProfile.name}`}
+                                            aria-describedby="rename-profile-button"
+                                        />
+                                        <Button
+                                            id="rename-profile-button"
+                                            variant="outline"
+                                            disabled={
+                                                !renameValue.trim() ||
+                                                renameValue === activeProfile.name
+                                            }
+                                            onClick={async () => {
+                                                if (!activeProfileId || !onUpdateProfile) return;
+                                                await onUpdateProfile(
+                                                    activeProfileId,
+                                                    renameValue.trim(),
+                                                    filters
+                                                );
+                                            }}
+                                            className="text-sm"
+                                            aria-label={`Confirm rename to ${renameValue || 'new name'}`}
+                                        >
+                                            Rename
+                                        </Button>
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-red-600 hover:bg-red-50 hover:border-red-300 text-sm"
+                                        disabled={!onDeleteProfile}
+                                        onClick={() => {
+                                            if (!activeProfileId || !onDeleteProfile) return;
+                                            setPendingAction('delete');
+                                            setConfirmDialogOpen(true);
+                                        }}
+                                        aria-label={`Delete profile ${activeProfile.name} permanently`}
+                                    >
+                                        Delete Profile
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Save New Profile Section */}
+                        <div className="border-t pt-4">
+                            <label
+                                htmlFor="new-profile-name"
+                                className="block text-sm font-semibold text-gray-800 mb-2"
+                            >
+                                Save as New Profile
+                            </label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="new-profile-name"
+                                    placeholder="Profile name..."
+                                    value={newProfileName}
+                                    onChange={(e) => setNewProfileName(e.target.value)}
+                                    className="flex-1 text-sm"
+                                    aria-label="Enter name for new profile"
+                                    aria-describedby="new-profile-description"
+                                    aria-required="true"
+                                />
+                                <Button
+                                    disabled={!newProfileName.trim() || !onCreateProfile}
+                                    onClick={() => {
+                                        if (!onCreateProfile || !newProfileName.trim()) return;
+                                        setPendingAction('save');
+                                        setConfirmDialogOpen(true);
+                                    }}
+                                    aria-label={`Save current filters as new profile named ${newProfileName || 'untitled'}`}
+                                >
+                                    Save
+                                </Button>
+                            </div>
+                            <p id="new-profile-description" className="text-xs text-gray-500 mt-1">
+                                Creates a new profile with your current filters
+                            </p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={confirmDialogOpen} onOpenChange={handleConfirmDialogChange}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>{confirmTitle}</DialogTitle>
+                        <DialogDescription>{confirmMessage}</DialogDescription>
+                    </DialogHeader>
+                    <p className="text-sm text-gray-600">
+                        {isDeleteConfirmation
+                            ? `Profile: ${activeProfile?.name ?? 'Unknown'}`
+                            : isSaveConfirmation
+                              ? `Profile name: ${trimmedNewProfileName}`
+                              : ''}
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => handleConfirmDialogChange(false)}
+                            disabled={confirmProcessing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={confirmVariant}
+                            className="text-white"
+                            disabled={confirmDisabled}
+                            onClick={handleConfirmAction}
+                        >
+                            {confirmProcessing ? 'Working…' : confirmButtonLabel}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

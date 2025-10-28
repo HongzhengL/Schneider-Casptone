@@ -161,6 +161,7 @@ export interface AdvancedFilterValues {
 export interface LoadSearchFilters extends AdvancedFilterValues {
     confirmedOnly: boolean;
     standardNetworkOnly: boolean;
+    originRadius: number | null;
     destination: string | null;
     destinationState: string | null;
     destinationRadius: number | null;
@@ -174,4 +175,42 @@ export interface DestinationOption {
     label: string;
     city: string;
     state: string;
+}
+
+// Saved search profiles
+export interface Profile {
+    id: string;
+    name: string;
+    filters: LoadSearchFilters;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface ProfileInput {
+    name: string;
+    filters: LoadSearchFilters;
+}
+
+// Auth types
+export interface SupabaseUser {
+    id: string;
+    email: string | null;
+    phone?: string | null;
+    user_metadata?: Record<string, unknown>;
+    app_metadata?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface AuthResponse {
+    expiresIn: number;
+    user: SupabaseUser;
+}
+
+export interface CurrentUserResponse {
+    user: SupabaseUser;
+}
+
+export interface SignupResponse {
+    user: SupabaseUser;
+    requiresConfirmation?: boolean;
 }
