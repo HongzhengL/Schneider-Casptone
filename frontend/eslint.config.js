@@ -34,6 +34,12 @@ export default defineConfig([
             ...tsRecommended.rules,
             ...reactHooksRecommended.rules,
             ...reactRefreshRecommended.rules,
+            'react-refresh/only-export-components': [
+                'error',
+                {
+                    allowExportNames: ['useAuth'],
+                },
+            ],
             'no-unused-vars': 'off',
             '@typescript-eslint/no-unused-vars': [
                 'error',
