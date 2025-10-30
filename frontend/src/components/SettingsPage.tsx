@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import {
     ChevronLeft,
     GripVertical,
@@ -55,7 +56,9 @@ export function SettingsPage({
         systemAlerts: true,
         promotions: false,
     });
-    const [darkMode, setDarkMode] = useState(false);
+    const { isDark, setDark } = useTheme();
+
+    // theme state managed globally
     const [autoLocation, setAutoLocation] = useState(true);
     const [distanceUnit, setDistanceUnit] = useState('miles');
     const [defaultRadius, setDefaultRadius] = useState([250]);
@@ -102,7 +105,7 @@ export function SettingsPage({
                     <CardTitle>Customize Trip Card Metrics</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-gray-600 text-sm mb-4">
+                    <p className="text-muted-foreground text-sm mb-4">
                         Choose which metrics appear at the top of your trip cards. You can drag to
                         reorder and toggle to enable/disable.
                     </p>
@@ -129,14 +132,14 @@ export function SettingsPage({
                             <Reorder.Item
                                 key={metric.id}
                                 value={metric}
-                                className="bg-gray-50 rounded-lg p-4 border cursor-grab active:cursor-grabbing"
+                                className="bg-accent text-accent-foreground rounded-lg p-4 border border-border cursor-grab active:cursor-grabbing"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <GripVertical className="w-5 h-5 text-gray-400" />
+                                        <GripVertical className="w-5 h-5 text-muted-foreground" />
                                         <div>
                                             <div className="font-medium">{metric.label}</div>
-                                            <div className="text-sm text-gray-500">
+                                            <div className="text-sm text-muted-foreground">
                                                 {metric.enabled
                                                     ? 'Currently shown'
                                                     : 'Currently hidden'}
@@ -160,7 +163,7 @@ export function SettingsPage({
                     <CardTitle>Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-sm text-gray-600 mb-3">
+                    <div className="text-sm text-muted-foreground mb-3">
                         Enabled metrics will appear in this order:
                     </div>
                     <div className="space-y-2">
@@ -176,7 +179,7 @@ export function SettingsPage({
                             ))}
                     </div>
                     {localMetrics.filter((m) => m.enabled).length === 0 && (
-                        <div className="text-gray-500 text-sm italic">
+                        <div className="text-muted-foreground text-sm italic">
                             No metrics enabled. Trip cards will show default layout.
                         </div>
                     )}
@@ -268,7 +271,7 @@ export function SettingsPage({
                             <div className="font-medium">Dark Mode</div>
                             <div className="text-sm text-gray-500">Switch to dark theme</div>
                         </div>
-                        <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                        <Switch checked={isDark} onCheckedChange={(v) => setDark(v === true)} />
                     </div>
 
                     <div className="flex items-center justify-between">

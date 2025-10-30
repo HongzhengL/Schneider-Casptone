@@ -8,6 +8,7 @@ import { SettingsPage } from './components/SettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
+import { useTheme } from './contexts/ThemeContext';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { useAuth } from './contexts/AuthContext';
@@ -67,6 +68,7 @@ const normalizeProfile = (profile: Profile): Profile => ({
 });
 
 export default function App() {
+    const { isDark } = useTheme();
     const [currentPage, setCurrentPage] = useState('home');
     const [customMetrics, setCustomMetrics] = useState<Metric[]>(fallbackMetrics);
     const [defaultMetrics, setDefaultMetrics] = useState<Metric[]>(fallbackMetrics);
@@ -243,7 +245,7 @@ export default function App() {
 
     if (isInitializing) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
                 <p className="text-gray-500 text-sm">Loading your session…</p>
             </div>
         );
@@ -279,7 +281,7 @@ export default function App() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
+        <div className="min-h-screen bg-background text-foreground flex flex-col max-w-md mx-auto">
             <main className="flex-1 pb-20">
                 {metricsError && (
                     <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-2 mx-4 my-3">
@@ -289,7 +291,7 @@ export default function App() {
                 {renderCurrentPage()}
             </main>
             <BottomNavigation currentPage={currentPage} onNavigate={setCurrentPage} />
-            <Toaster />
+            <Toaster theme={isDark ? 'dark' : 'light'} />
         </div>
     );
 }

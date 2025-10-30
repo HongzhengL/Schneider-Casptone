@@ -52,7 +52,7 @@ export function LoginPage({
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
             <div className="w-full max-w-5xl grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
                 <div className="hidden lg:flex flex-col space-y-6 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white rounded-3xl p-10 shadow-xl shadow-orange-200/60">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/15">

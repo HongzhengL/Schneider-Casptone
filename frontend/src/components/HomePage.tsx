@@ -66,18 +66,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
             {/* Quick Action Section */}
             <div className="space-y-4">
-                <h3 className="text-gray-900">Schneider Services</h3>
+                <h3 className="text-foreground">Schneider Services</h3>
                 <div className="grid grid-cols-2 gap-3">
                     <Button
                         variant="outline"
-                        className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        className="border-primary/50 text-primary hover:bg-accent"
                         onClick={() => onNavigate('search')}
                     >
                         Find Loads
                     </Button>
                     <Button
                         variant="outline"
-                        className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        className="border-primary/50 text-primary hover:bg-accent"
                         onClick={() => onNavigate('results')}
                     >
                         My Assignments
@@ -86,13 +86,13 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <div className="grid grid-cols-2 gap-3">
                     <Button
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
+                        className="border-border text-foreground hover:bg-accent text-sm"
                     >
                         Trip Planning
                     </Button>
                     <Button
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
+                        className="border-border text-foreground hover:bg-accent text-sm"
                     >
                         Fuel Network
                     </Button>
@@ -101,33 +101,33 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
             {/* Available Assignments Section */}
             <div className="space-y-4">
-                <h3 className="text-gray-900">Available Assignments</h3>
+                <h3 className="text-foreground">Available Assignments</h3>
                 {isLoading && (
-                    <div className="text-sm text-gray-500">Loading upcoming assignments…</div>
+                    <div className="text-sm text-muted-foreground">Loading upcoming assignments…</div>
                 )}
                 {error && <div className="text-sm text-red-600">{error}</div>}
                 {!isLoading && !error && (
                     <div className="space-y-3">
                         {suggestedLoads.length === 0 ? (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-muted-foreground">
                                 No suggested loads available right now. Check back soon.
                             </div>
                         ) : (
                             suggestedLoads.map((load) => (
                                 <div
                                     key={load.id}
-                                    className="bg-white rounded-lg p-4 border border-orange-200 shadow-sm"
+                                    className="bg-card text-card-foreground rounded-lg p-4 border border-border shadow-sm"
                                 >
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-start">
-                                            <div className="text-gray-900 font-medium">
+                                            <div className="text-foreground font-medium">
                                                 {load.title}
                                             </div>
                                             <div className="text-orange-600 font-semibold">
                                                 {load.price}
                                             </div>
                                         </div>
-                                        <div className="text-sm text-gray-600">
+                                        <div className="text-sm text-muted-foreground">
                                             {load.distance} | {load.loadType} | {load.date}
                                         </div>
                                         <div className="text-sm text-orange-600">
@@ -142,9 +142,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
 
             {/* Schneider Network Info */}
-            <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                <h4 className="text-gray-900 mb-2">Schneider Network</h4>
-                <div className="text-sm text-gray-600 space-y-1">
+            <div className="bg-accent rounded-lg p-4 border border-border">
+                <h4 className="text-foreground mb-2">Schneider Network</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
                     <p>• 2,400+ fuel locations nationwide</p>
                     <p>• 24/7 driver support and dispatch</p>
                     <p>• Dedicated customer relationships</p>
