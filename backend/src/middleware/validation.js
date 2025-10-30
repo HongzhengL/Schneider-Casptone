@@ -1,5 +1,5 @@
 // backend/src/middleware/validation.js
-import { body, query, validationResult } from 'express-validator';
+import { query, validationResult } from 'express-validator';
 
 export const validateLoadSearch = [
     query('minLoadedRpm')

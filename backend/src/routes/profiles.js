@@ -1,7 +1,7 @@
 import express from 'express';
 import { body, param } from 'express-validator';
 import { requireAuth } from '../middleware/auth.js';
-import { asyncHandler, ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { asyncHandler, NotFoundError } from '../middleware/errorHandler.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import { ProfilesService } from '../utils/profilesService.js';
 

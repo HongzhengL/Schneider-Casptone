@@ -194,7 +194,7 @@ export function SearchPage({
         if (destHighlighted >= visibleDestinations.length) {
             setDestHighlighted(visibleDestinations.length > 0 ? visibleDestinations.length - 1 : 0);
         }
-    }, [visibleDestinations.length]);
+    }, [visibleDestinations.length, destHighlighted]);
 
     const totalDestPages = useMemo(
         () => Math.max(1, Math.ceil(filteredDestinations.length / DEST_PAGE_SIZE)),
@@ -220,7 +220,7 @@ export function SearchPage({
         if (originHighlighted >= visibleOrigins.length) {
             setOriginHighlighted(visibleOrigins.length > 0 ? visibleOrigins.length - 1 : 0);
         }
-    }, [visibleOrigins.length]);
+    }, [visibleOrigins.length, originHighlighted]);
 
     const totalOrigPages = useMemo(
         () => Math.max(1, Math.ceil(filteredOrigins.length / ORIG_PAGE_SIZE)),
@@ -239,6 +239,11 @@ export function SearchPage({
 
     const goToNextPage = () => {
         setDestPage((p) => (p + 1 < totalDestPages ? p + 1 : p));
+        setDestHighlighted(0);
+    };
+
+    const goToPrevPage = () => {
+        setDestPage((p) => (p - 1 >= 0 ? p - 1 : p));
         setDestHighlighted(0);
     };
 

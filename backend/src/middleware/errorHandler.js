@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Enhanced error handler with more features
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
     // Enhanced error logging with more details
     const errorLog = {
         message: err.message,
