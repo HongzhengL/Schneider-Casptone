@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This tool shall provides **insights** (not decisions) to help drivers judge a load.
+This tool shall provide **insights** (not decisions) to help drivers judge a load.
 Unless **Total RPM >= Rolling CPM(RCPM)**, the driver is earning _something_ toward
 fixed costs (truck note, insurance, permit, etc.).
 We must **constantly remind** drivers of **Downtime Cost**
@@ -86,7 +86,7 @@ Fairly allocate a trip’s **contribution** to the periods where miles happen.
 
 Add `RCPM` to be able to be displayed in the cards, just like `Est Total RPM`.
 
-**UX/UX**
+**UI/UX**
 
 Should be the same level as `Est Total RPM`, also be filterable.
 
