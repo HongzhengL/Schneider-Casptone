@@ -287,7 +287,9 @@ export function FindLoadsResultsPage({
             {/* Trip Cards */}
             <div className="p-4 space-y-4 min-h-[50vh]">
                 {isLoading ? (
-                    <div className="text-sm text-muted-foreground">Loading loads based on your filters…</div>
+                    <div className="text-sm text-muted-foreground">
+                        Loading loads based on your filters…
+                    </div>
                 ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                 ) : visibleTrips.length > 0 ? (

@@ -13,10 +13,14 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function getInitialTheme(): Theme {
+    let stored: string | null = null;
     try {
-        const stored = localStorage.getItem('theme');
-        if (stored === 'dark' || stored === 'light') return stored;
-    } catch {}
+        stored = localStorage.getItem('theme');
+    } catch (err) {
+        void err; // ignore access errors (e.g., privacy mode)
+    }
+
+    if (stored === 'dark' || stored === 'light') return stored;
 
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches === true;
     return prefersDark ? 'dark' : 'light';
@@ -34,7 +38,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
         try {
             localStorage.setItem('theme', theme);
-        } catch {}
+        } catch (err) {
+            void err; // ignore persistence errors
+        }
     }, [theme]);
 
     const value = useMemo<ThemeContextValue>(
@@ -51,9 +57,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme(): ThemeContextValue {
     const ctx = useContext(ThemeContext);
     if (!ctx) throw new Error('useTheme must be used within a ThemeProvider');
     return ctx;
 }
-

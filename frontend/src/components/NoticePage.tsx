@@ -106,7 +106,11 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
                     <h3 className="text-foreground">Read</h3>
-                    <Button variant="outline" size="sm" className="text-foreground border-border hover:bg-accent">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground border-border hover:bg-accent"
+                    >
                         <Archive className="w-4 h-4 mr-2" />
                         Archive All
                     </Button>
@@ -127,7 +131,9 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                                         {getNoticeIcon(notice.type)}
                                         <div className="text-foreground">{notice.title}</div>
                                     </div>
-                                    <span className="text-xs text-muted-foreground">{notice.time}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {notice.time}
+                                    </span>
                                 </div>
                                 <div className="text-muted-foreground">{notice.route}</div>
                                 <div className="text-muted-foreground">{notice.details}</div>
@@ -135,7 +141,9 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                         </div>
                     ))}
                     {!isLoading && !error && (noticesData?.read?.length ?? 0) === 0 && (
-                        <div className="text-sm text-muted-foreground">No previous notices to display.</div>
+                        <div className="text-sm text-muted-foreground">
+                            No previous notices to display.
+                        </div>
                     )}
                 </div>
             </div>
@@ -155,7 +163,9 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                                         {getNoticeIcon(notice.type)}
                                         <div className="text-foreground">{notice.title}</div>
                                     </div>
-                                    <span className="text-xs text-muted-foreground">{notice.time}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {notice.time}
+                                    </span>
                                 </div>
                                 <div className="text-muted-foreground">{notice.message}</div>
                             </div>

@@ -828,7 +828,9 @@ export function SearchPage({
                         </div>
                     )}
                 </div>
-                {destinationsLoading && <p className="text-xs text-muted-foreground">Loading origins...</p>}
+                {destinationsLoading && (
+                    <p className="text-xs text-muted-foreground">Loading origins...</p>
+                )}
                 {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
 
                 {selectOriginStates && (
@@ -1066,11 +1068,11 @@ export function SearchPage({
                                     id={`dest-option-${idx}`}
                                     role="option"
                                     aria-selected={idx === destHighlighted}
-                            className={`px-3 py-2 text-sm cursor-pointer ${
-                                idx === destHighlighted
-                                    ? 'bg-orange-50 text-orange-700'
-                                    : 'text-foreground hover:bg-accent'
-                            }`}
+                                    className={`px-3 py-2 text-sm cursor-pointer ${
+                                        idx === destHighlighted
+                                            ? 'bg-orange-50 text-orange-700'
+                                            : 'text-foreground hover:bg-accent'
+                                    }`}
                                     onMouseEnter={() => setDestHighlighted(idx)}
                                     onMouseDown={(e) => {
                                         e.preventDefault();
@@ -1217,7 +1219,9 @@ export function SearchPage({
                     {advancedButtonLabel}
                 </Button>
                 {advancedSummary.length > 0 && (
-                    <p className="mt-2 text-xs text-muted-foreground">{advancedSummary.join(' · ')}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        {advancedSummary.join(' · ')}
+                    </p>
                 )}
             </div>
 
@@ -1506,7 +1510,10 @@ export function SearchPage({
                                     Save
                                 </Button>
                             </div>
-                            <p id="new-profile-description" className="text-xs text-muted-foreground mt-1">
+                            <p
+                                id="new-profile-description"
+                                className="text-xs text-muted-foreground mt-1"
+                            >
                                 Creates a new profile with your current filters
                             </p>
                         </div>

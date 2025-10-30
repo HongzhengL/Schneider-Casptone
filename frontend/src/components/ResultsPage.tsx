@@ -143,7 +143,9 @@ export function ResultsPage({ onNavigate }: ResultsPageProps) {
             {/* Completed Trip Cards */}
             <div className="p-4 space-y-4 min-h-[50vh]">
                 {isLoading ? (
-                    <div className="text-sm text-muted-foreground">Loading your completed runs…</div>
+                    <div className="text-sm text-muted-foreground">
+                        Loading your completed runs…
+                    </div>
                 ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                 ) : visibleTrips.length === 0 ? (
@@ -170,7 +172,9 @@ export function ResultsPage({ onNavigate }: ResultsPageProps) {
                                 <div className="flex items-start gap-2">
                                     <div className="w-3 h-3 rounded-full bg-orange-500 mt-1 flex-shrink-0"></div>
                                     <div>
-                                        <p className="text-sm text-foreground">{trip.fromLocation}</p>
+                                        <p className="text-sm text-foreground">
+                                            {trip.fromLocation}
+                                        </p>
                                         <p className="text-xs text-muted-foreground">
                                             Picked up:{' '}
                                             {trip.pickupDate.toLocaleDateString('en-US', {

@@ -103,7 +103,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
             <div className="space-y-4">
                 <h3 className="text-foreground">Available Assignments</h3>
                 {isLoading && (
-                    <div className="text-sm text-muted-foreground">Loading upcoming assignments…</div>
+                    <div className="text-sm text-muted-foreground">
+                        Loading upcoming assignments…
+                    </div>
                 )}
                 {error && <div className="text-sm text-red-600">{error}</div>}
                 {!isLoading && !error && (
