@@ -37,26 +37,29 @@ export function AdvancedFiltersDialog({
         setServiceExclusions(value.serviceExclusions);
     }, [value, open]);
 
-    const serviceExclusionOptions = [
-        { id: 'twic', label: 'TWIC' },
-        { id: 'customer-live-load', label: 'CUSTOMER LIVE LOAD' },
-        { id: 'customer-live-unload', label: 'CUSTOMER LIVE UNLOAD' },
-        { id: 'hazmat', label: 'HAZMAT' },
-        { id: 'live-load', label: 'LIVE LOAD' },
-        { id: 'live-unload', label: 'LIVE UNLOAD' },
-        { id: 'high-value', label: 'HIGH VALUE' },
-        { id: 'lumper-load', label: 'LUMPER LOAD' },
-        { id: 'lumper-unload', label: 'LUMPER UNLOAD' },
-        { id: 'stop-off', label: 'STOP OFF' },
-        { id: 'driver-assist-load', label: 'DRIVER ASSIST LOAD' },
-        { id: 'driver-assist-unload', label: 'DRIVER ASSIST UNLOAD' },
-        { id: 'trailer-shuttle', label: 'TRAILER SHUTTLE' },
-        { id: 'driver-load', label: 'DRIVER LOAD' },
-        { id: 'driver-unload', label: 'DRIVER UNLOAD' },
-        { id: 'trailer-spot', label: 'TRAILER SPOT' },
-        { id: 'pick-up-relay', label: 'PICK UP RELAY' },
-        { id: 'drop-relay', label: 'DROP RELAY' },
-    ];
+    const serviceExclusionOptions = useMemo(
+        () => [
+            { id: 'twic', label: 'TWIC' },
+            { id: 'customer-live-load', label: 'CUSTOMER LIVE LOAD' },
+            { id: 'customer-live-unload', label: 'CUSTOMER LIVE UNLOAD' },
+            { id: 'hazmat', label: 'HAZMAT' },
+            { id: 'live-load', label: 'LIVE LOAD' },
+            { id: 'live-unload', label: 'LIVE UNLOAD' },
+            { id: 'high-value', label: 'HIGH VALUE' },
+            { id: 'lumper-load', label: 'LUMPER LOAD' },
+            { id: 'lumper-unload', label: 'LUMPER UNLOAD' },
+            { id: 'stop-off', label: 'STOP OFF' },
+            { id: 'driver-assist-load', label: 'DRIVER ASSIST LOAD' },
+            { id: 'driver-assist-unload', label: 'DRIVER ASSIST UNLOAD' },
+            { id: 'trailer-shuttle', label: 'TRAILER SHUTTLE' },
+            { id: 'driver-load', label: 'DRIVER LOAD' },
+            { id: 'driver-unload', label: 'DRIVER UNLOAD' },
+            { id: 'trailer-spot', label: 'TRAILER SPOT' },
+            { id: 'pick-up-relay', label: 'PICK UP RELAY' },
+            { id: 'drop-relay', label: 'DROP RELAY' },
+        ],
+        []
+    );
 
     const filteredExclusionOptions = useMemo(() => {
         const q = exclusionQuery.trim().toLowerCase();
@@ -64,13 +67,13 @@ export function AdvancedFiltersDialog({
         return serviceExclusionOptions.filter(
             (o) => o.label.toLowerCase().includes(q) || o.id.toLowerCase().includes(q)
         );
-    }, [exclusionQuery]);
+    }, [exclusionQuery, serviceExclusionOptions]);
 
     const exclusionLabelById = useMemo(() => {
         const map: Record<string, string> = {};
         for (const o of serviceExclusionOptions) map[o.id] = o.label;
         return map;
-    }, []);
+    }, [serviceExclusionOptions]);
 
     const filteredIdSet = useMemo(
         () => new Set(filteredExclusionOptions.map((o) => o.id)),
@@ -155,8 +158,6 @@ export function AdvancedFiltersDialog({
         if (Number.isFinite(maxDistance) && minDistance > (maxDistance as number)) {
             setMaxDistance(Number.POSITIVE_INFINITY);
         }
-        // Only react to distance changes
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [minDistance, maxDistance]);
 
     return (
