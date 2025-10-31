@@ -608,11 +608,11 @@ export function SearchPage({
             </div>
 
             {/* Profile Selector */}
-            <div className="p-3 bg-white rounded-lg border">
+            <div className="p-3 bg-card text-card-foreground rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-700 w-24">Profile</label>
+                    <label className="text-sm text-muted-foreground w-24">Profile</label>
                     <select
-                        className="flex-1 border rounded px-2 py-2 text-sm"
+                        className="flex-1 border border-border rounded px-2 py-2 text-sm bg-background text-foreground"
                         value={
                             activeProfileId && removedProfileIds.includes(activeProfileId)
                                 ? ''
@@ -669,16 +669,16 @@ export function SearchPage({
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <span>Origin</span>
+                    <span className="text-foreground">Origin</span>
                     <div className="flex items-center gap-2">
-                        <span>Select States</span>
+                        <span className="text-muted-foreground">Select States</span>
                         <Switch checked={selectOriginStates} onCheckedChange={handleOriginToggle} />
                     </div>
                 </div>
 
-                <div className="p-3 bg-white rounded-lg border">
+                <div className="p-3 bg-card text-card-foreground rounded-lg border border-border">
                     <div className="flex items-center gap-3">
-                        <Search className="w-5 h-5 text-gray-400" />
+                        <Search className="w-5 h-5 text-muted-foreground" />
                         <input
                             type="text"
                             role="combobox"
@@ -727,7 +727,7 @@ export function SearchPage({
                                       : 'Search origins'
                             }
                             disabled={destinationsLoading || Boolean(destinationsError)}
-                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                            className="flex-1 border-0 bg-transparent text-sm text-foreground focus:outline-none"
                         />
                         {originQuery && !destinationsLoading && !destinationsError && (
                             <Button
@@ -746,7 +746,7 @@ export function SearchPage({
                             id="origins-listbox"
                             role="listbox"
                             aria-label="Origin options"
-                            className="mt-2 border rounded-md overflow-hidden bg-white shadow-sm"
+                            className="mt-2 border border-border rounded-md overflow-hidden bg-card shadow-sm"
                             onTouchStart={(e) => {
                                 const touch = e.changedTouches?.[0];
                                 if (touch) {
@@ -781,7 +781,7 @@ export function SearchPage({
                                     className={`px-3 py-2 text-sm cursor-pointer ${
                                         idx === originHighlighted
                                             ? 'bg-orange-50 text-orange-700'
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            : 'text-foreground hover:bg-accent'
                                     }`}
                                     onMouseEnter={() => setOriginHighlighted(idx)}
                                     onMouseDown={(e) => {
@@ -793,7 +793,7 @@ export function SearchPage({
                                 </div>
                             ))}
                             {filteredOrigins.length > ORIG_PAGE_SIZE && (
-                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                <div className="px-3 py-2 border-t border-border bg-accent flex items-center justify-between text-xs text-muted-foreground select-none">
                                     <span>
                                         Page {origPage + 1} of {totalOrigPages}
                                     </span>
@@ -828,16 +828,18 @@ export function SearchPage({
                         </div>
                     )}
                 </div>
-                {destinationsLoading && <p className="text-xs text-gray-500">Loading origins...</p>}
+                {destinationsLoading && (
+                    <p className="text-xs text-muted-foreground">Loading origins...</p>
+                )}
                 {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
 
                 {selectOriginStates && (
                     <div className="grid grid-cols-2 gap-3">
-                        <span className="text-sm text-gray-600">Origin state</span>
+                        <span className="text-sm text-muted-foreground">Origin state</span>
                         <select
                             value={originState ?? ''}
                             onChange={(event) => setOriginState(event.target.value || null)}
-                            className="border rounded-md px-2 py-2 text-sm text-gray-700"
+                            className="border border-border rounded-md px-2 py-2 text-sm bg-background text-foreground"
                         >
                             <option value="">All states</option>
                             {stateOptions.map((state) => (
@@ -852,7 +854,7 @@ export function SearchPage({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-700">Origin Radius</span>
+                    <span className="text-foreground">Origin Radius</span>
                     <span className="text-orange-600 font-semibold">{originRadiusValue} mi</span>
                 </div>
                 <Slider
@@ -867,9 +869,9 @@ export function SearchPage({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-gray-600">Pick-up Date</h3>
+                    <h3 className="text-muted-foreground">Pick-up Date</h3>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-muted-foreground">
                             {formatDate(pickupRange.from).dateStr} –{' '}
                             {formatDate(pickupRange.to).dateStr}
                         </span>
@@ -888,9 +890,9 @@ export function SearchPage({
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-white rounded-lg border hover:border-orange-300 transition-colors">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-card text-card-foreground rounded-lg border border-border hover:border-primary/40 transition-colors">
                     <div className="space-y-2">
-                        <label className="text-gray-600 text-sm" htmlFor="pickup-from">
+                        <label className="text-muted-foreground text-sm" htmlFor="pickup-from">
                             From
                         </label>
                         <Input
@@ -901,7 +903,7 @@ export function SearchPage({
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-gray-600 text-sm" htmlFor="pickup-to">
+                        <label className="text-muted-foreground text-sm" htmlFor="pickup-to">
                             To
                         </label>
                         <Input
@@ -928,16 +930,16 @@ export function SearchPage({
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <span>Destination</span>
+                    <span className="text-foreground">Destination</span>
                     <div className="flex items-center gap-2">
-                        <span>Select States</span>
+                        <span className="text-muted-foreground">Select States</span>
                         <Switch checked={selectStates} onCheckedChange={handleDestinationToggle} />
                     </div>
                 </div>
 
-                <div className="p-3 bg-white rounded-lg border">
+                <div className="p-3 bg-card text-card-foreground rounded-lg border border-border">
                     <div className="flex items-center gap-3">
-                        <Search className="w-5 h-5 text-gray-400" />
+                        <Search className="w-5 h-5 text-muted-foreground" />
                         <input
                             type="text"
                             role="combobox"
@@ -987,7 +989,7 @@ export function SearchPage({
                                       : 'Search destinations'
                             }
                             disabled={destinationsLoading || Boolean(destinationsError)}
-                            className="flex-1 border-0 bg-transparent text-sm text-gray-700 focus:outline-none"
+                            className="flex-1 border-0 bg-transparent text-sm text-foreground focus:outline-none"
                         />
                         {destinationQuery && !destinationsLoading && !destinationsError && (
                             <Button
@@ -1004,7 +1006,7 @@ export function SearchPage({
                         <div
                             id="destinations-listbox"
                             role="listbox"
-                            className="mt-2 max-h-60 overflow-y-auto border rounded-md bg-white shadow-sm"
+                            className="mt-2 max-h-60 overflow-y-auto border border-border rounded-md bg-card shadow-sm"
                             onTouchStart={(e) => {
                                 const t = e.changedTouches[0];
                                 touchStartRef.current = { x: t.clientX, y: t.clientY };
@@ -1069,7 +1071,7 @@ export function SearchPage({
                                     className={`px-3 py-2 text-sm cursor-pointer ${
                                         idx === destHighlighted
                                             ? 'bg-orange-50 text-orange-700'
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            : 'text-foreground hover:bg-accent'
                                     }`}
                                     onMouseEnter={() => setDestHighlighted(idx)}
                                     onMouseDown={(e) => {
@@ -1081,7 +1083,7 @@ export function SearchPage({
                                 </div>
                             ))}
                             {filteredDestinations.length > DEST_PAGE_SIZE && (
-                                <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600 select-none">
+                                <div className="px-3 py-2 border-t border-border bg-accent flex items-center justify-between text-xs text-muted-foreground select-none">
                                     <span>
                                         Page {destPage + 1} of {totalDestPages}
                                     </span>
@@ -1117,17 +1119,17 @@ export function SearchPage({
                     )}
                 </div>
                 {destinationsLoading && (
-                    <p className="text-xs text-gray-500">Loading destinations…</p>
+                    <p className="text-xs text-muted-foreground">Loading destinations…</p>
                 )}
                 {destinationsError && <p className="text-xs text-red-600">{destinationsError}</p>}
 
                 {selectStates && (
                     <div className="grid grid-cols-2 gap-3">
-                        <span className="text-sm text-gray-600">Destination state</span>
+                        <span className="text-sm text-muted-foreground">Destination state</span>
                         <select
                             value={filters.destinationState ?? ''}
                             onChange={(event) => handleStateChange(event.target.value)}
-                            className="border rounded-md px-2 py-2 text-sm text-gray-700"
+                            className="border border-border rounded-md px-2 py-2 text-sm bg-background text-foreground"
                         >
                             <option value="">All states</option>
                             {stateOptions.map((state) => (
@@ -1142,7 +1144,7 @@ export function SearchPage({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-700">Destination Radius</span>
+                    <span className="text-foreground">Destination Radius</span>
                     <span className="text-orange-600 font-semibold">
                         {destinationRadiusValue} mi
                     </span>
@@ -1159,9 +1161,9 @@ export function SearchPage({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-gray-600">Drop Date</h3>
+                    <h3 className="text-muted-foreground">Drop Date</h3>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-muted-foreground">
                             {formatDate(dropRange.from).dateStr} –{' '}
                             {formatDate(dropRange.to).dateStr}
                         </span>
@@ -1180,9 +1182,9 @@ export function SearchPage({
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-white rounded-lg border hover:border-orange-300 transition-colors">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-card text-card-foreground rounded-lg border border-border hover:border-primary/40 transition-colors">
                     <div className="space-y-2">
-                        <label className="text-gray-600 text-sm" htmlFor="drop-from">
+                        <label className="text-muted-foreground text-sm" htmlFor="drop-from">
                             From
                         </label>
                         <Input
@@ -1193,7 +1195,7 @@ export function SearchPage({
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-gray-600 text-sm" htmlFor="drop-to">
+                        <label className="text-muted-foreground text-sm" htmlFor="drop-to">
                             To
                         </label>
                         <Input
@@ -1210,14 +1212,16 @@ export function SearchPage({
             <div>
                 <Button
                     variant="outline"
-                    className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 py-4"
+                    className="w-full border-primary/50 text-primary hover:bg-accent py-4"
                     onClick={() => setShowAdvancedFilters(true)}
                 >
                     <SlidersHorizontal className="w-5 h-5 mr-2" />
                     {advancedButtonLabel}
                 </Button>
                 {advancedSummary.length > 0 && (
-                    <p className="mt-2 text-xs text-gray-500">{advancedSummary.join(' · ')}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        {advancedSummary.join(' · ')}
+                    </p>
                 )}
             </div>
 
@@ -1232,14 +1236,14 @@ export function SearchPage({
                 <div className="grid grid-cols-2 gap-3">
                     <Button
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        className="border-border text-foreground hover:bg-accent"
                         onClick={resetFilters}
                     >
                         Reset Filters
                     </Button>
                     <Button
                         variant="outline"
-                        className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        className="border-primary/50 text-primary hover:bg-accent"
                         onClick={() => setShowProfilesPanel(true)}
                         aria-label="Open search profiles panel to save or manage profiles"
                     >
@@ -1312,13 +1316,13 @@ export function SearchPage({
                         <div>
                             <label
                                 htmlFor="load-profile-select"
-                                className="block text-sm font-semibold text-gray-800 mb-2"
+                                className="block text-sm font-semibold text-foreground mb-2"
                             >
                                 Load Profile
                             </label>
                             <select
                                 id="load-profile-select"
-                                className="w-full border rounded px-3 py-2 text-sm bg-white"
+                                className="w-full border border-border rounded px-3 py-2 text-sm bg-background text-foreground"
                                 value={
                                     activeProfileId && removedProfileIds.includes(activeProfileId)
                                         ? ''
@@ -1362,7 +1366,7 @@ export function SearchPage({
                             {profilesLoading && (
                                 <p
                                     id="load-profile-status"
-                                    className="text-xs text-gray-500 mt-1"
+                                    className="text-xs text-muted-foreground mt-1"
                                     role="status"
                                     aria-live="polite"
                                 >
@@ -1374,7 +1378,7 @@ export function SearchPage({
                         {/* Active Profile Status */}
                         {activeProfile && (
                             <div
-                                className="bg-blue-50 border border-blue-200 rounded p-3"
+                                className="bg-accent border border-border rounded p-3"
                                 role="region"
                                 aria-labelledby="active-profile-heading"
                             >
@@ -1382,12 +1386,12 @@ export function SearchPage({
                                     <div>
                                         <p
                                             id="active-profile-heading"
-                                            className="text-xs text-gray-600"
+                                            className="text-xs text-muted-foreground"
                                         >
                                             Active Profile
                                         </p>
                                         <p
-                                            className="text-sm font-semibold text-gray-800"
+                                            className="text-sm font-semibold text-foreground"
                                             aria-label={`Current active profile: ${activeProfile.name}`}
                                         >
                                             {activeProfile.name}
@@ -1476,10 +1480,10 @@ export function SearchPage({
                         )}
 
                         {/* Save New Profile Section */}
-                        <div className="border-t pt-4">
+                        <div className="border-t border-border pt-4">
                             <label
                                 htmlFor="new-profile-name"
-                                className="block text-sm font-semibold text-gray-800 mb-2"
+                                className="block text-sm font-semibold text-foreground mb-2"
                             >
                                 Save as New Profile
                             </label>
@@ -1506,7 +1510,10 @@ export function SearchPage({
                                     Save
                                 </Button>
                             </div>
-                            <p id="new-profile-description" className="text-xs text-gray-500 mt-1">
+                            <p
+                                id="new-profile-description"
+                                className="text-xs text-muted-foreground mt-1"
+                            >
                                 Creates a new profile with your current filters
                             </p>
                         </div>
@@ -1520,7 +1527,7 @@ export function SearchPage({
                         <DialogTitle>{confirmTitle}</DialogTitle>
                         <DialogDescription>{confirmMessage}</DialogDescription>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                         {isDeleteConfirmation
                             ? `Profile: ${activeProfile?.name ?? 'Unknown'}`
                             : isSaveConfirmation

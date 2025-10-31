@@ -127,7 +127,7 @@ export function SignUpPage({ onNavigateToLogin }: SignUpPageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 flex items-center justify-center px-6 py-10">
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-6 py-10">
             <div className="w-full max-w-lg">
                 <div className="mb-8 text-center space-y-2">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 text-orange-600 shadow-sm">

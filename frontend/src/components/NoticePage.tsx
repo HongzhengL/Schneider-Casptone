@@ -61,7 +61,7 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
         <div className="p-4 space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <button onClick={() => onNavigate('home')} className="text-gray-600">
+                <button onClick={() => onNavigate('home')} className="text-primary">
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <h1 className="text-orange-500">Notice</h1>
@@ -74,9 +74,9 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
 
             {/* Unread Section */}
             <div className="space-y-3">
-                <h3 className="text-gray-900">Unread</h3>
+                <h3 className="text-foreground">Unread</h3>
                 {isLoading && (
-                    <div className="text-sm text-gray-500">Checking for new notices…</div>
+                    <div className="text-sm text-muted-foreground">Checking for new notices…</div>
                 )}
                 {error && <div className="text-sm text-red-600">{error}</div>}
                 {!isLoading && !error && (
@@ -84,17 +84,17 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                         {(noticesData?.unread ?? []).map((notice) => (
                             <div
                                 key={notice.id}
-                                className="bg-gray-100 rounded-lg p-4 border border-gray-200"
+                                className="bg-accent rounded-lg p-4 border border-border"
                             >
                                 <div className="space-y-1">
-                                    <div className="text-gray-900">{notice.title}</div>
-                                    <div className="text-gray-700">{notice.route}</div>
-                                    <div className="text-gray-700">{notice.details}</div>
+                                    <div className="text-foreground">{notice.title}</div>
+                                    <div className="text-muted-foreground">{notice.route}</div>
+                                    <div className="text-muted-foreground">{notice.details}</div>
                                 </div>
                             </div>
                         ))}
                         {(noticesData?.unread?.length ?? 0) === 0 && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-muted-foreground">
                                 You're all caught up. No unread notices.
                             </div>
                         )}
@@ -105,8 +105,12 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
             {/* Read Section */}
             <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                    <h3 className="text-gray-900">Read</h3>
-                    <Button variant="outline" size="sm" className="text-gray-600 border-gray-300">
+                    <h3 className="text-foreground">Read</h3>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground border-border hover:bg-accent"
+                    >
                         <Archive className="w-4 h-4 mr-2" />
                         Archive All
                     </Button>
@@ -117,52 +121,58 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
                             key={notice.id}
                             className={`rounded-lg p-4 ${
                                 notice.isSelected
-                                    ? 'bg-white border-2 border-blue-400'
-                                    : 'bg-gray-100 border border-gray-200'
+                                    ? 'bg-card text-card-foreground border-2 border-primary/40'
+                                    : 'bg-accent border border-border'
                             }`}
                         >
                             <div className="space-y-2">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-2">
                                         {getNoticeIcon(notice.type)}
-                                        <div className="text-gray-900">{notice.title}</div>
+                                        <div className="text-foreground">{notice.title}</div>
                                     </div>
-                                    <span className="text-xs text-gray-500">{notice.time}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {notice.time}
+                                    </span>
                                 </div>
-                                <div className="text-gray-700">{notice.route}</div>
-                                <div className="text-gray-700">{notice.details}</div>
+                                <div className="text-muted-foreground">{notice.route}</div>
+                                <div className="text-muted-foreground">{notice.details}</div>
                             </div>
                         </div>
                     ))}
                     {!isLoading && !error && (noticesData?.read?.length ?? 0) === 0 && (
-                        <div className="text-sm text-gray-500">No previous notices to display.</div>
+                        <div className="text-sm text-muted-foreground">
+                            No previous notices to display.
+                        </div>
                     )}
                 </div>
             </div>
 
             {/* System Notices Section */}
             <div className="space-y-3">
-                <h3 className="text-gray-900">System Notices</h3>
+                <h3 className="text-foreground">System Notices</h3>
                 <div className="space-y-3">
                     {(noticesData?.system ?? []).map((notice) => (
                         <div
                             key={notice.id}
-                            className="bg-blue-50 rounded-lg p-4 border border-blue-200"
+                            className="bg-accent rounded-lg p-4 border border-border"
                         >
                             <div className="space-y-2">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-2">
                                         {getNoticeIcon(notice.type)}
-                                        <div className="text-gray-900">{notice.title}</div>
+                                        <div className="text-foreground">{notice.title}</div>
                                     </div>
-                                    <span className="text-xs text-gray-500">{notice.time}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {notice.time}
+                                    </span>
                                 </div>
-                                <div className="text-gray-700">{notice.message}</div>
+                                <div className="text-muted-foreground">{notice.message}</div>
                             </div>
                         </div>
                     ))}
                     {!isLoading && !error && (noticesData?.system?.length ?? 0) === 0 && (
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                             No system updates at the moment.
                         </div>
                     )}
@@ -171,18 +181,18 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
 
             {/* Quick Actions */}
             <div className="space-y-3">
-                <h3 className="text-gray-900">Quick Actions</h3>
+                <h3 className="text-foreground">Quick Actions</h3>
                 <div className="grid grid-cols-2 gap-3">
                     <Button
                         variant="outline"
-                        className="h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
+                        className="h-12 border-border text-foreground hover:bg-accent"
                         onClick={() => onNavigate('results')}
                     >
                         View My Loads
                     </Button>
                     <Button
                         variant="outline"
-                        className="h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
+                        className="h-12 border-border text-foreground hover:bg-accent"
                         onClick={() => onNavigate('search')}
                     >
                         Find New Loads
@@ -191,15 +201,15 @@ export function NoticePage({ onNavigate }: NoticePageProps) {
             </div>
 
             {/* Summary Stats */}
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
-                <h3 className="text-gray-900 mb-3">This Week Summary</h3>
+            <div className="bg-accent rounded-lg p-4 border border-border">
+                <h3 className="text-foreground mb-3">This Week Summary</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <p className="text-sm text-gray-600">New Matches</p>
+                        <p className="text-sm text-muted-foreground">New Matches</p>
                         <p className="text-2xl text-orange-600">12</p>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Total Notifications</p>
+                        <p className="text-sm text-muted-foreground">Total Notifications</p>
                         <p className="text-2xl text-orange-600">24</p>
                     </div>
                 </div>

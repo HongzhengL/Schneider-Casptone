@@ -190,19 +190,19 @@ export function FindLoadsResultsPage({
     };
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="bg-background text-foreground min-h-screen">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-orange-50 to-orange-100">
+            <div className="flex items-center justify-between p-4 border-b bg-accent">
                 <div className="flex items-center gap-3">
                     <ChevronLeft
-                        className="w-6 h-6 cursor-pointer text-orange-600"
+                        className="w-6 h-6 cursor-pointer text-primary"
                         onClick={() => onNavigate('search')}
                     />
-                    <h1 className="text-xl text-orange-600">Available Loads</h1>
+                    <h1 className="text-xl text-primary">Available Loads</h1>
                 </div>
                 <button
                     onClick={() => setShowAdvancedFilters(true)}
-                    className="text-orange-600 hover:text-orange-700"
+                    className="text-primary hover:opacity-90"
                     aria-label={`Advanced filters${
                         advancedFilterCount ? ` (${advancedFilterCount})` : ''
                     }`}
@@ -215,15 +215,15 @@ export function FindLoadsResultsPage({
             </div>
 
             {/* Filters */}
-            <div className="p-4 space-y-4 border-b bg-gray-50">
+            <div className="p-4 space-y-4 border-b bg-accent">
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                         {isLoading
                             ? 'Loading matches…'
                             : `${visibleTrips.length} of ${tripData.length} Matches`}
                     </span>
                     <div className="flex items-center gap-2">
-                        <span className="text-gray-600">Sort By:</span>
+                        <span className="text-muted-foreground">Sort By:</span>
                         <Select value={sortBy} onValueChange={setSortBy}>
                             <SelectTrigger className="w-[160px] h-8 border-none bg-transparent p-0">
                                 <SelectValue />
@@ -287,7 +287,7 @@ export function FindLoadsResultsPage({
             {/* Trip Cards */}
             <div className="p-4 space-y-4 min-h-[50vh]">
                 {isLoading ? (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                         Loading loads based on your filters…
                     </div>
                 ) : error ? (
@@ -304,11 +304,11 @@ export function FindLoadsResultsPage({
                     ))
                 ) : (
                     <div className="text-center py-12">
-                        <div className="text-gray-400 mb-4">
+                        <div className="text-muted-foreground mb-4">
                             <Eye className="w-16 h-16 mx-auto mb-4" />
                         </div>
-                        <h3 className="text-lg text-gray-900 mb-2">No more trips to show</h3>
-                        <p className="text-gray-500 text-sm mb-6">
+                        <h3 className="text-lg text-foreground mb-2">No more trips to show</h3>
+                        <p className="text-muted-foreground text-sm mb-6">
                             You've dismissed all available trips. Check back later for new loads.
                         </p>
                         <button
@@ -324,7 +324,7 @@ export function FindLoadsResultsPage({
 
             {/* Instructions */}
             {!isLoading && !error && visibleTrips.length > 0 && (
-                <div className="p-4 text-center text-gray-500 text-sm">
+                <div className="p-4 text-center text-muted-foreground text-sm">
                     Swipe left to dislike a trip
                 </div>
             )}

@@ -28,7 +28,7 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
     };
 
     return (
-        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50 shadow-lg">
+        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-card/95 text-foreground backdrop-blur-sm border-t border-border z-50 shadow-lg">
             <div className="grid grid-cols-5 gap-1">
                 {navItems.map((item) => {
                     const Icon = item.icon;
@@ -39,7 +39,9 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
                             key={item.id}
                             onClick={() => onNavigate(item.id)}
                             className={`flex flex-col items-center py-2 px-1 transition-colors duration-200 ${
-                                isActive ? 'text-orange-500' : 'text-gray-600 hover:text-orange-500'
+                                isActive
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground hover:text-primary'
                             }`}
                         >
                             <Icon className={`w-6 h-6 mb-1 ${isActive ? 'fill-current' : ''}`} />
