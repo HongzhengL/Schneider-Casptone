@@ -271,7 +271,7 @@ export function SettingsPage({
                             <div className="font-medium">Dark Mode</div>
                             <div className="text-sm text-gray-500">Switch to dark theme</div>
                         </div>
-                        <Switch checked={isDark} onCheckedChange={(v) => setDark(v === true)} />
+                        <Switch checked={isDark} onCheckedChange={setDark} />
                     </div>
 
                     <div className="flex items-center justify-between">
