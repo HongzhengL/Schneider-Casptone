@@ -245,7 +245,7 @@ export function ProfitabilitySettingsPage({
 
         onSave(updated);
         toast.success('Profitability settings saved!');
-        onNavigate('findloadsresults');
+        onNavigate('more');
     };
 
     const addOtherFixedCost = () => {
@@ -271,7 +271,7 @@ export function ProfitabilitySettingsPage({
                 <div className="flex items-center gap-3">
                     <ChevronLeft
                         className="w-6 h-6 cursor-pointer"
-                        onClick={() => onNavigate('findloadsresults')}
+                        onClick={() => onNavigate('more')}
                     />
                     <div>
                         <h1 className="text-2xl">Profitability Tools</h1>
@@ -1027,7 +1027,7 @@ export function ProfitabilitySettingsPage({
                 </Button>
 
                 <Button
-                    onClick={() => onNavigate('findloadsresults')}
+                    onClick={() => onNavigate('more')}
                     variant="outline"
                     className="w-full mt-3"
                 >
