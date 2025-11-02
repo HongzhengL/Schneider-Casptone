@@ -30,11 +30,7 @@ import {
 import { createEmptyProfitabilitySettings } from './constants/profitabilitySettings';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
 import { createDefaultLoadFilters } from './constants/loadFilters';
-import {
-    fallbackMetrics,
-    normalizeFilters,
-    normalizeProfile,
-} from './utils/profileHelpers';
+import { fallbackMetrics, normalizeFilters, normalizeProfile } from './utils/profileHelpers';
 
 export default function App() {
     const { isDark } = useTheme();
