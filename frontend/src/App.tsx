@@ -5,6 +5,10 @@ import { SearchPage } from './components/SearchPage';
 import { FindLoadsResultsPage } from './components/FindLoadsResultsPage';
 import { ResultsPage } from './components/ResultsPage';
 import { SettingsPage } from './components/SettingsPage';
+import {
+    ProfitabilitySettingsPage,
+    type ProfitabilitySettings,
+} from './components/ProfitabilitySettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
@@ -20,6 +24,8 @@ import {
     updateProfile,
     deleteProfile as apiDeleteProfile,
     applyProfile as apiApplyProfile,
+    fetchProfitabilitySettings,
+    saveProfitabilitySettings,
 } from './services/api';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
 
@@ -67,6 +73,54 @@ const normalizeProfile = (profile: Profile): Profile => ({
     filters: normalizeFilters(profile.filters),
 });
 
+const defaultProfitabilitySettings: ProfitabilitySettings = {
+    mpg: 6.5,
+    fuelPrice: 3.89,
+    maintenanceDollars: 1200,
+    maintenanceMiles: 10000,
+    monthlyFixedBundle: 12000,
+    tiresDollars: 800,
+    tiresMiles: 40000,
+    maintenanceDollarsDetailed: 600,
+    maintenanceMilesDetailed: 15000,
+    oilChangeDollars: 300,
+    oilChangeMiles: 15000,
+    defFluidDollars: 150,
+    defFluidMiles: 10000,
+    tollsDollars: 250,
+    tollsMiles: 10000,
+    truckPayment: 1800,
+    truckPaymentPeriod: 1,
+    truckPaymentUnit: 'month',
+    trailerPayment: 400,
+    trailerPaymentPeriod: 1,
+    trailerPaymentUnit: 'month',
+    insurance: 1200,
+    insurancePeriod: 1,
+    insuranceUnit: 'month',
+    permits: 1200,
+    permitsPeriod: 1,
+    permitsUnit: 'year',
+    eldSubscription: 45,
+    eldSubscriptionPeriod: 1,
+    eldSubscriptionUnit: 'month',
+    phoneInternet: 100,
+    phoneInternetPeriod: 1,
+    phoneInternetUnit: 'month',
+    parking: 200,
+    parkingPeriod: 1,
+    parkingUnit: 'month',
+    softwareTools: 50,
+    softwareToolsPeriod: 1,
+    softwareToolsUnit: 'month',
+    otherFixed: [],
+    marginCents: 5,
+    marginPercent: 3,
+    useWhicheverGreater: true,
+    useRealTimeFuel: false,
+    useProMode: false,
+};
+
 export default function App() {
     const { isDark } = useTheme();
     const [currentPage, setCurrentPage] = useState('home');
@@ -79,6 +133,9 @@ export default function App() {
     const [profilesLoading, setProfilesLoading] = useState(true);
     const [loadFilters, setLoadFilters] = useState<LoadSearchFilters>(() =>
         createDefaultLoadFilters()
+    );
+    const [profitabilitySettings, setProfitabilitySettings] = useState<ProfitabilitySettings>(
+        defaultProfitabilitySettings
     );
     const { isAuthenticated, isInitializing } = useAuth();
     const [authView, setAuthView] = useState<'login' | 'signup'>('login');
@@ -165,6 +222,40 @@ export default function App() {
         };
     }, []);
 
+    // Load profitability settings
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!isAuthenticated) {
+            setProfitabilitySettings(defaultProfitabilitySettings);
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        const loadSettings = async () => {
+            try {
+                const settings = await fetchProfitabilitySettings();
+                if (!isMounted) {
+                    return;
+                }
+                setProfitabilitySettings(settings);
+            } catch (error) {
+                if (!isMounted) {
+                    return;
+                }
+                console.error('Failed to load profitability settings:', error);
+                setProfitabilitySettings(defaultProfitabilitySettings);
+            }
+        };
+
+        loadSettings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated]);
+
     // Profile management helpers (can be passed to pages later)
     const handleCreateProfile = async (name: string) => {
         const newProfile = normalizeProfile(await createProfile({ name, filters: loadFilters }));
@@ -190,6 +281,16 @@ export default function App() {
         const normalizedFilters = normalizeFilters(filters);
         setLoadFilters(normalizedFilters);
         return normalizedFilters;
+    };
+
+    const handleSaveProfitabilitySettings = async (settings: ProfitabilitySettings) => {
+        try {
+            const savedSettings = await saveProfitabilitySettings(settings);
+            setProfitabilitySettings(savedSettings);
+        } catch (error) {
+            console.error('Failed to save profitability settings:', error);
+            throw error;
+        }
     };
 
     const renderCurrentPage = () => {
@@ -234,6 +335,14 @@ export default function App() {
                         onNavigate={setCurrentPage}
                         isLoadingDefaults={metricsLoading}
                         loadError={metricsError}
+                    />
+                );
+            case 'profitability-settings':
+                return (
+                    <ProfitabilitySettingsPage
+                        onNavigate={setCurrentPage}
+                        settings={profitabilitySettings}
+                        onSave={handleSaveProfitabilitySettings}
                     />
                 );
             case 'more':

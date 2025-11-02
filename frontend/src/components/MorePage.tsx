@@ -78,6 +78,20 @@ export function MorePage({ onNavigate }: MorePageProps) {
     const performance = driverData?.performance;
     const appVersion = driverData?.appVersion ?? '{appVersion}';
 
+    const extendedMenuSections = [
+        {
+            title: 'Insights & Tools',
+            items: [
+                {
+                    icon: 'trending-up',
+                    label: 'Profitability Tools',
+                    navigationTarget: 'profitability-settings',
+                },
+            ],
+        },
+        ...menuSections,
+    ];
+
     const loadsCompleted = performance?.loadsCompleted ?? 47;
     const onTimeRate = performance ? `${(performance.onTimeRate * 100).toFixed(1)}%` : '98.2%';
     const averageRating = performance?.averageRating ?? 4.8;
@@ -239,7 +253,7 @@ export function MorePage({ onNavigate }: MorePageProps) {
 
             {/* Menu Sections */}
             <div className="mx-4 space-y-6">
-                {menuSections.map((section, sectionIndex) => (
+                {extendedMenuSections.map((section, sectionIndex) => (
                     <div
                         key={sectionIndex}
                         className="bg-card text-card-foreground rounded-lg shadow-sm border border-border"
