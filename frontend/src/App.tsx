@@ -27,99 +27,14 @@ import {
     fetchProfitabilitySettings,
     saveProfitabilitySettings,
 } from './services/api';
+import { createEmptyProfitabilitySettings } from './constants/profitabilitySettings';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
-
-const fallbackMetrics: Metric[] = [
-    { id: 'distance', label: 'Distance', enabled: true },
-    { id: 'weight', label: 'Weight', enabled: true },
-    { id: 'loadedRpm', label: 'Loaded RPM', enabled: true },
-    { id: 'totalRpm', label: 'Est Total RPM', enabled: false },
-    { id: 'loadType', label: 'Load Type', enabled: false },
-];
-
-const createDefaultLoadFilters = (): LoadSearchFilters => {
-    return {
-        minLoadedRpm: null,
-        minDistance: null,
-        maxDistance: null,
-        serviceExclusions: [],
-        confirmedOnly: false,
-        standardNetworkOnly: false,
-        originRadius: null,
-        destination: null,
-        destinationState: null,
-        destinationRadius: null,
-        pickupDateFrom: null,
-        pickupDateTo: null,
-        dropDateFrom: null,
-        dropDateTo: null,
-    };
-};
-
-const normalizeFilters = (
-    incoming: Partial<LoadSearchFilters> | null | undefined
-): LoadSearchFilters => {
-    const defaults = createDefaultLoadFilters();
-    return {
-        ...defaults,
-        ...(incoming ?? {}),
-        serviceExclusions: incoming?.serviceExclusions ?? defaults.serviceExclusions,
-        originRadius: incoming?.originRadius ?? defaults.originRadius,
-    };
-};
-
-const normalizeProfile = (profile: Profile): Profile => ({
-    ...profile,
-    filters: normalizeFilters(profile.filters),
-});
-
-const defaultProfitabilitySettings: ProfitabilitySettings = {
-    mpg: 6.5,
-    fuelPrice: 3.89,
-    maintenanceDollars: 1200,
-    maintenanceMiles: 10000,
-    monthlyFixedBundle: 12000,
-    tiresDollars: 800,
-    tiresMiles: 40000,
-    maintenanceDollarsDetailed: 600,
-    maintenanceMilesDetailed: 15000,
-    oilChangeDollars: 300,
-    oilChangeMiles: 15000,
-    defFluidDollars: 150,
-    defFluidMiles: 10000,
-    tollsDollars: 250,
-    tollsMiles: 10000,
-    truckPayment: 1800,
-    truckPaymentPeriod: 1,
-    truckPaymentUnit: 'month',
-    trailerPayment: 400,
-    trailerPaymentPeriod: 1,
-    trailerPaymentUnit: 'month',
-    insurance: 1200,
-    insurancePeriod: 1,
-    insuranceUnit: 'month',
-    permits: 1200,
-    permitsPeriod: 1,
-    permitsUnit: 'year',
-    eldSubscription: 45,
-    eldSubscriptionPeriod: 1,
-    eldSubscriptionUnit: 'month',
-    phoneInternet: 100,
-    phoneInternetPeriod: 1,
-    phoneInternetUnit: 'month',
-    parking: 200,
-    parkingPeriod: 1,
-    parkingUnit: 'month',
-    softwareTools: 50,
-    softwareToolsPeriod: 1,
-    softwareToolsUnit: 'month',
-    otherFixed: [],
-    marginCents: 5,
-    marginPercent: 3,
-    useWhicheverGreater: true,
-    useRealTimeFuel: false,
-    useProMode: false,
-};
+import { createDefaultLoadFilters } from './constants/loadFilters';
+import {
+    fallbackMetrics,
+    normalizeFilters,
+    normalizeProfile,
+} from './utils/profileHelpers';
 
 export default function App() {
     const { isDark } = useTheme();
@@ -135,7 +50,7 @@ export default function App() {
         createDefaultLoadFilters()
     );
     const [profitabilitySettings, setProfitabilitySettings] = useState<ProfitabilitySettings>(
-        defaultProfitabilitySettings
+        createEmptyProfitabilitySettings()
     );
     const { isAuthenticated, isInitializing } = useAuth();
     const [authView, setAuthView] = useState<'login' | 'signup'>('login');
@@ -227,7 +142,7 @@ export default function App() {
         let isMounted = true;
 
         if (!isAuthenticated) {
-            setProfitabilitySettings(defaultProfitabilitySettings);
+            setProfitabilitySettings(createEmptyProfitabilitySettings());
             return () => {
                 isMounted = false;
             };
@@ -245,7 +160,7 @@ export default function App() {
                     return;
                 }
                 console.error('Failed to load profitability settings:', error);
-                setProfitabilitySettings(defaultProfitabilitySettings);
+                setProfitabilitySettings(createEmptyProfitabilitySettings());
             }
         };
 
