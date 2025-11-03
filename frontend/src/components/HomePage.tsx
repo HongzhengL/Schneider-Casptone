@@ -12,7 +12,12 @@ interface HomePageProps {
 export function HomePage({ onNavigate }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [errr, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Placeholder for fixed cost per day; in a real application this value would be
+    // provided by user settings or fetched from a backend API. It represents
+    // the daily fixed cost used to calculate downtime expenses.
+    const FIXED_COST_PER_DAY = 150;
 
     useEffect(() => {
         let isMounted = true;
@@ -45,14 +50,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
         };
     }, []);
 
-    
-               
-                // Placeholder for fixed cost per day; in a real application this value would be
-                    // provided by user settings or fetched from a backend API. It represents
-                        // the daily fixed cost used to calculate downtime expenses.
-                    const FIXED_COST_PER_DAY = 150;
-                            return (
-            <div className="p-4 space-y-6">
+    return (
+        <div className="p-4 space-y-6">
             {/* Schneider Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg -mx-4 -mt-4 mb-6">
                 <div className="flex justify-between items-center mb-3">
@@ -64,20 +63,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
                         onClick={() => onNavigate('notice')}
                         className="text-white hover:text-orange-200"
                     >
-                       <Bell className="w-6 h-6" />
+                        <Bell className="w-6 h-6" />
                     </button>
                 </div>
-                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
-        <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-        <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
-        </div>
-        </div>
+                <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
+                <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
+                <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
+            </div>
 
             {/* Quick Action Section */}
             <div className="space-y-4">
                 <h3 className="text-foreground">Schneider Services</h3>
                 <div className="grid grid-cols-2 gap-3">
-                                    
                     <Button
                         variant="outline"
                         className="border-primary/50 text-primary hover:bg-accent"
@@ -97,7 +94,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                     <Button
                         variant="outline"
                         className="border-border text-foreground hover:bg-accent text-sm"
-                   >
+                    >
                         Trip Planning
                     </Button>
                     <Button
