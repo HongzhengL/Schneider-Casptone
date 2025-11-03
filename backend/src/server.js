@@ -14,6 +14,7 @@ import {
     appVersion,
 } from './data/driverPortal.js';
 import { defaultMetrics } from './data/metrics.js';
+import { fixedBudgets, regionalPercentile } from './data/fixedCosts.js';
 import { authRouter } from './routes/auth.js';
 import { profilesRouter } from './routes/profiles.js';
 import { buildAuthGuard } from './middleware/auth.js';
@@ -224,6 +225,48 @@ app.get('/api/driver/portal', (_req, res) => {
 
 app.get('/api/settings/metrics', (_req, res) => {
     res.json(defaultMetrics);
+});
+
+app.get('/api/metrics/fixed-coverage', (req, res) => {
+    const period = (String(req.query.period || 'week').toLowerCase() === 'month'
+        ? 'month'
+        : 'week') as 'week' | 'month';
+
+    const now = new Date();
+    const start = new Date(now);
+    if (period === 'week') {
+        const day = now.getDay();
+        const diffToMonday = (day + 6) % 7; // 0 for Monday
+        start.setDate(now.getDate() - diffToMonday);
+        start.setHours(0, 0, 0, 0);
+    } else {
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+    }
+
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+
+    const fixedBudget = fixedBudgets[period] ?? 0;
+    const periodRuns = completedRuns.filter((run) => {
+        const d = new Date(run.completionDate);
+        return d >= start && d <= end;
+    });
+    const coveredRaw = periodRuns.reduce((sum, r) => sum + (r.priceNum || 0), 0);
+    const covered = Math.min(coveredRaw, fixedBudget);
+    const remaining = Math.max(0, fixedBudget - coveredRaw);
+    const percent = fixedBudget > 0 ? Math.min(100, Math.round((coveredRaw / fixedBudget) * 100)) : 0;
+    const profitAfterCoverage = Math.max(0, coveredRaw - fixedBudget);
+
+    res.json({
+        period,
+        fixedBudget,
+        covered,
+        remaining,
+        percent,
+        profitAfterCoverage,
+        percentile: regionalPercentile,
+    });
 });
 
 app.use(errorHandler);

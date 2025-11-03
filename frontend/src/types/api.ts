@@ -191,6 +191,19 @@ export interface ProfileInput {
     filters: LoadSearchFilters;
 }
 
+// Fixed coverage metrics
+export type FixedCoveragePeriod = 'week' | 'month';
+
+export interface FixedCoverageMetrics {
+    period: FixedCoveragePeriod;
+    fixedBudget: number;
+    covered: number;
+    remaining: number;
+    percent: number; // 0-100
+    profitAfterCoverage: number; // earnings after fixed costs covered
+    percentile?: number; // optional playful metric
+}
+
 // Auth types
 export interface SupabaseUser {
     id: string;

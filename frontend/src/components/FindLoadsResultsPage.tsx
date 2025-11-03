@@ -7,6 +7,7 @@ import { SwipeableTripCard } from './SwipeableTripCard';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
+import { FixedCoverageBar } from './FixedCoverageBar';
 
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
@@ -283,6 +284,9 @@ export function FindLoadsResultsPage({
                     </div>
                 )}
             </div>
+
+            {/* Fixed Coverage Insights */}
+            <FixedCoverageBar defaultPeriod="week" />
 
             {/* Trip Cards */}
             <div className="p-4 space-y-4 min-h-[50vh]">

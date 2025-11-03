@@ -14,6 +14,7 @@ import type {
     Profile,
     ProfileInput,
     SignupResponse,
+    FixedCoverageMetrics,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
@@ -174,6 +175,11 @@ export async function fetchCustomMetrics(): Promise<Metric[]> {
 
 export async function fetchDestinations(): Promise<DestinationOption[]> {
     return request<DestinationOption[]>('/destinations');
+}
+
+export async function fetchFixedCoverage(period: 'week' | 'month' = 'week'): Promise<FixedCoverageMetrics> {
+    const params = new URLSearchParams({ period });
+    return request<FixedCoverageMetrics>(`/metrics/fixed-coverage?${params.toString()}`);
 }
 
 // Profiles API
