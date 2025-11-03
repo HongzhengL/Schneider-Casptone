@@ -12,7 +12,7 @@ interface HomePageProps {
 export function HomePage({ onNavigate }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [errr, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -64,13 +64,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
                         onClick={() => onNavigate('notice')}
                         className="text-white hover:text-orange-200"
                     >
-                        <Bell className="w-6 h-6" />
+                       <Bell className="w-6 h-6" />
                     </button>
                 </div>
-                <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
-                <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-         <    <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
-            </div>
+                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
+        <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
+        <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
+        </div>
+        </div>
 
             {/* Quick Action Section */}
             <div className="space-y-4">
@@ -96,7 +97,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                     <Button
                         variant="outline"
                         className="border-border text-foreground hover:bg-accent text-sm"
-                    >
+                   >
                         Trip Planning
                     </Button>
                     <Button
