@@ -47,12 +47,12 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
     
                
-        // Placeholder for fixed cost per day; in a real application this value would be
-        // provided by user settings or fetched from a backend API. It represents
-        // the daily fixed cost used to calculate downtime expenses.
-        const FIXED_COST_PER_DAY = 150;
-                return (
-        <div className="p-4 space-y-6">
+                // Placeholder for fixed cost per day; in a real application this value would be
+                    // provided by user settings or fetched from a backend API. It represents
+                        // the daily fixed cost used to calculate downtime expenses.
+                    const FIXED_COST_PER_DAY = 150;
+                            return (
+            <div className="p-4 space-y-6">
             {/* Schneider Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg -mx-4 -mt-4 mb-6">
                 <div className="flex justify-between items-center mb-3">
@@ -69,7 +69,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
                 <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-                                                                <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
+                        <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
             </div>
 
             {/* Quick Action Section */}
