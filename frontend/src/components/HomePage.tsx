@@ -69,7 +69,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
                 <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-                        <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
+            <    <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
             </div>
 
             {/* Quick Action Section */}
