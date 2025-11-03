@@ -228,9 +228,7 @@ app.get('/api/settings/metrics', (_req, res) => {
 });
 
 app.get('/api/metrics/fixed-coverage', (req, res) => {
-    const period = (String(req.query.period || 'week').toLowerCase() === 'month'
-        ? 'month'
-        : 'week') as 'week' | 'month';
+    const period = String(req.query.period || 'week').toLowerCase() === 'month' ? 'month' : 'week';
 
     const now = new Date();
     const start = new Date(now);
@@ -255,7 +253,8 @@ app.get('/api/metrics/fixed-coverage', (req, res) => {
     const coveredRaw = periodRuns.reduce((sum, r) => sum + (r.priceNum || 0), 0);
     const covered = Math.min(coveredRaw, fixedBudget);
     const remaining = Math.max(0, fixedBudget - coveredRaw);
-    const percent = fixedBudget > 0 ? Math.min(100, Math.round((coveredRaw / fixedBudget) * 100)) : 0;
+    const percent =
+        fixedBudget > 0 ? Math.min(100, Math.round((coveredRaw / fixedBudget) * 100)) : 0;
     const profitAfterCoverage = Math.max(0, coveredRaw - fixedBudget);
 
     res.json({

@@ -41,14 +41,17 @@ export function FixedCoverageBar({ defaultPeriod = 'week' }: FixedCoverageBarPro
 
     const statusText = useMemo(() => {
         if (!metrics) return '';
-        const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const fmt = (n: number) =>
+            n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         return `Fixed Cost: $${fmt(metrics.fixedBudget)} • Covered: $${fmt(metrics.covered)} • Remaining: $${fmt(metrics.remaining)}`;
     }, [metrics]);
 
     return (
         <div className="p-4 pb-2">
             <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">Fixed Coverage ({period === 'week' ? 'This Week' : 'This Month'})</div>
+                <div className="text-sm font-medium">
+                    Fixed Coverage ({period === 'week' ? 'This Week' : 'This Month'})
+                </div>
                 <Select value={period} onValueChange={(v) => setPeriod(v as FixedCoveragePeriod)}>
                     <SelectTrigger className="w-[120px] h-8">
                         <SelectValue placeholder="Period" />
@@ -61,10 +64,7 @@ export function FixedCoverageBar({ defaultPeriod = 'week' }: FixedCoverageBarPro
             </div>
 
             <div className="bg-muted rounded-md h-3 overflow-hidden border border-border">
-                <div
-                    className="bg-green-500 h-full"
-                    style={{ width: barCoveredWidth }}
-                />
+                <div className="bg-green-500 h-full" style={{ width: barCoveredWidth }} />
             </div>
 
             <div className="text-xs text-muted-foreground mt-2">
@@ -85,5 +85,3 @@ export function FixedCoverageBar({ defaultPeriod = 'week' }: FixedCoverageBarPro
         </div>
     );
 }
-
-

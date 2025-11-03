@@ -177,7 +177,9 @@ export async function fetchDestinations(): Promise<DestinationOption[]> {
     return request<DestinationOption[]>('/destinations');
 }
 
-export async function fetchFixedCoverage(period: 'week' | 'month' = 'week'): Promise<FixedCoverageMetrics> {
+export async function fetchFixedCoverage(
+    period: 'week' | 'month' = 'week'
+): Promise<FixedCoverageMetrics> {
     const params = new URLSearchParams({ period });
     return request<FixedCoverageMetrics>(`/metrics/fixed-coverage?${params.toString()}`);
 }
