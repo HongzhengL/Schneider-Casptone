@@ -125,6 +125,9 @@ export function FindLoadsResultsPage({
         if (filters.minLoadedRpm != null) {
             chips.push(`Min RPM $${filters.minLoadedRpm.toFixed(2)}`);
         }
+        if (filters.minRcpm != null) {
+            chips.push(`Min RCPM $${filters.minRcpm.toFixed(2)}`);
+        }
         if (filters.minDistance != null && filters.minDistance > 0) {
             chips.push(`Min dist ${filters.minDistance} mi`);
         }
@@ -176,11 +179,18 @@ export function FindLoadsResultsPage({
     const advancedFilterCount = useMemo(() => {
         let count = 0;
         if (filters.minLoadedRpm != null) count += 1;
+        if (filters.minRcpm != null) count += 1;
         if (filters.minDistance != null && filters.minDistance > 0) count += 1;
         if (filters.maxDistance != null) count += 1;
         if (filters.serviceExclusions.length > 0) count += filters.serviceExclusions.length;
         return count;
-    }, [filters.minLoadedRpm, filters.minDistance, filters.maxDistance, filters.serviceExclusions]);
+    }, [
+        filters.minLoadedRpm,
+        filters.minRcpm,
+        filters.minDistance,
+        filters.maxDistance,
+        filters.serviceExclusions,
+    ]);
 
     const handleAdvancedApply = (values: AdvancedFilterValues) => {
         onFiltersChange({
@@ -335,6 +345,7 @@ export function FindLoadsResultsPage({
                 onOpenChange={setShowAdvancedFilters}
                 value={{
                     minLoadedRpm: filters.minLoadedRpm,
+                    minRcpm: filters.minRcpm,
                     minDistance: filters.minDistance,
                     maxDistance: filters.maxDistance,
                     serviceExclusions: filters.serviceExclusions,

@@ -10,6 +10,14 @@ interface Trip {
     weight: string;
     loadedRpm: string;
     totalRpm: string;
+    rcpm?: string;
+    // Optional numeric fields from API (used for verdicts)
+    priceNum?: number;
+    distanceNum?: number;
+    distanceToOrigin?: number;
+    loadedRpmNum?: number;
+    totalRpmNum?: number;
+    rcpmNum?: number;
     loadType: string;
     fromLocation: string;
     fromDate: string;
@@ -88,6 +96,8 @@ export function SwipeableTripCard({
                 return trip.loadedRpm;
             case 'totalRpm':
                 return trip.totalRpm;
+            case 'rcpm':
+                return trip.rcpm ?? '';
             case 'loadType':
                 return trip.loadType;
             default:
@@ -105,11 +115,76 @@ export function SwipeableTripCard({
                 return 'Loaded RPM:';
             case 'totalRpm':
                 return 'Est Total RPM:';
+            case 'rcpm':
+                return 'RCPM:';
             case 'loadType':
                 return 'Load Type:';
             default:
                 return '';
         }
+    };
+
+    // Day/Night icon helpers (avoid regex with surrogate pairs for lint compatibility)
+    const hasDayNightIcon = (text: string) => {
+        const t = text ?? '';
+        const icons = ['☀', '🌙', '🌞', '🌜'];
+        return icons.some((ch) => t.includes(ch));
+    };
+
+    const parseHour = (text: string): number[] => {
+        const hours: number[] = [];
+        const lower = text.toLowerCase();
+
+        // Handle special words
+        if (/(midnight)/.test(lower)) hours.push(0);
+        if (/(noon)/.test(lower)) hours.push(12);
+
+        // 12-hour format with optional minutes and am/pm
+        const ampmRegex = /(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)\b/gi;
+        let m: RegExpExecArray | null;
+        while ((m = ampmRegex.exec(lower)) !== null) {
+            let h = parseInt(m[1], 10);
+            const isPM = m[3].startsWith('p');
+            if (h === 12) h = 0;
+            h = isPM ? h + 12 : h;
+            hours.push(h);
+        }
+
+        // 24-hour format times (avoid matching dates by requiring colon)
+        const h24Regex = /\b(\d{1,2}):(\d{2})\b/g;
+        while ((m = h24Regex.exec(lower)) !== null) {
+            const h = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+            hours.push(h);
+        }
+
+        // Compact ranges like 6p-10p or 6am-10am
+        const compactRegex = /\b(\d{1,2})\s*(a|p)m?\s*-\s*(\d{1,2})\s*(a|p)m?\b/gi;
+        while ((m = compactRegex.exec(lower)) !== null) {
+            const startRaw = parseInt(m[1], 10);
+            const endRaw = parseInt(m[3], 10);
+            const start = (startRaw % 12) + (m[2] === 'p' ? 12 : 0);
+            const end = (endRaw % 12) + (m[4] === 'p' ? 12 : 0);
+            hours.push(start, end);
+        }
+
+        return hours;
+    };
+
+    const isNightHour = (h: number) => h < 6 || h >= 18;
+
+    const renderTimeIcon = (text: string) => {
+        if (!text || hasDayNightIcon(text)) return null;
+        const hours = parseHour(text);
+        if (hours.length === 0) return null;
+        const anyNight = hours.some(isNightHour);
+        const anyDay = hours.some((h) => !isNightHour(h));
+        // If spans both day and night, prefer moon to be conservative
+        const showMoon = anyNight && !anyDay ? true : anyNight;
+        return (
+            <span aria-label={showMoon ? 'Night' : 'Day'} title={showMoon ? 'Night' : 'Day'}>
+                {showMoon ? '🌙' : '☀️'}
+            </span>
+        );
     };
 
     return (
@@ -148,23 +223,94 @@ export function SwipeableTripCard({
 
                             {enabledMetrics.map((metric) => {
                                 const isRpmMetric =
-                                    metric.id === 'loadedRpm' || metric.id === 'totalRpm';
-                                return (
-                                    <div key={metric.id} className="text-sm">
-                                        {isRpmMetric ? (
+                                    metric.id === 'loadedRpm' ||
+                                    metric.id === 'totalRpm' ||
+                                    metric.id === 'rcpm';
+
+                                // Verdict helpers for Est Total RPM vs RCPM
+                                const computeRcpm = (t: Trip): number | undefined => {
+                                    if (typeof t.rcpmNum === 'number') return t.rcpmNum;
+                                    if (
+                                        typeof t.priceNum === 'number' &&
+                                        typeof t.distanceNum === 'number'
+                                    ) {
+                                        const combined = t.distanceNum + (t.distanceToOrigin ?? 0);
+                                        if (combined > 0)
+                                            return Number((t.priceNum / combined).toFixed(2));
+                                    }
+                                    return undefined;
+                                };
+                                const getVerdictForTotalRpm = (t: Trip) => {
+                                    const total =
+                                        typeof t.totalRpmNum === 'number'
+                                            ? t.totalRpmNum
+                                            : undefined;
+                                    const rcpm = computeRcpm(t);
+                                    if (total == null || rcpm == null) {
+                                        return {
+                                            className: 'text-gray-600',
+                                            symbol: '•',
+                                            verdict: 'Unknown',
+                                            title: 'Insufficient data to assess',
+                                        } as const;
+                                    }
+                                    const min = Number(
+                                        import.meta.env.VITE_VERDICT_MARGIN_MIN ?? 0.05
+                                    );
+                                    const pct = Number(
+                                        import.meta.env.VITE_VERDICT_MARGIN_PCT ?? 0.03
+                                    );
+                                    const margin = Math.max(min, rcpm * pct);
+                                    let className = 'text-amber-600';
+                                    let symbol = '≈';
+                                    let verdict = 'At cost';
+                                    if (total >= rcpm + margin) {
+                                        className = 'text-green-600';
+                                        symbol = '▲';
+                                        verdict = 'Contributes';
+                                    } else if (total < rcpm - margin) {
+                                        className = 'text-red-600';
+                                        symbol = '▼';
+                                        verdict = 'Burns cash';
+                                    }
+                                    const title = `${verdict}: Total RPM ${total.toFixed(2)} vs RCPM ${rcpm.toFixed(
+                                        2
+                                    )} (margin ${margin.toFixed(2)})`;
+                                    return { className, symbol, verdict, title } as const;
+                                };
+
+                                const content = renderMetricValue(metric.id);
+                                if (isRpmMetric) {
+                                    const verdict =
+                                        metric.id === 'totalRpm'
+                                            ? getVerdictForTotalRpm(trip)
+                                            : null;
+                                    const valueClass = verdict?.className ?? 'text-orange-500';
+                                    const title = verdict?.title ?? undefined;
+                                    return (
+                                        <div key={metric.id} className="text-sm">
                                             <div className="space-y-1">
                                                 <div className="text-gray-600">
                                                     {renderMetricLabel(metric.id)}
                                                 </div>
-                                                <div className="text-orange-500">
-                                                    {renderMetricValue(metric.id)}
+                                                <div
+                                                    className={`${valueClass} flex items-center gap-1`}
+                                                    title={title}
+                                                >
+                                                    {verdict ? (
+                                                        <span aria-label={verdict.verdict}>
+                                                            {verdict.symbol}
+                                                        </span>
+                                                    ) : null}
+                                                    <span>{content}</span>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="text-gray-600">
-                                                {renderMetricValue(metric.id)}
-                                            </div>
-                                        )}
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div key={metric.id} className="text-sm">
+                                        <div className="text-gray-600">{content}</div>
                                     </div>
                                 );
                             })}
@@ -182,8 +328,14 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.fromLocation}</div>
-                                        <div className="text-sm text-gray-600">{trip.fromDate}</div>
-                                        <div className="text-sm text-gray-600">{trip.toDate}</div>
+                                        <div className="text-sm text-gray-600 flex items-center gap-1">
+                                            <span>{trip.fromDate}</span>
+                                            {renderTimeIcon(trip.fromDate)}
+                                        </div>
+                                        <div className="text-sm text-gray-600 flex items-center gap-1">
+                                            <span>{trip.toDate}</span>
+                                            {renderTimeIcon(trip.toDate)}
+                                        </div>
                                         <div className="text-sm text-orange-500">
                                             {trip.loadType}
                                         </div>
@@ -197,7 +349,10 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.toLocation}</div>
-                                        <div className="text-sm text-gray-600">{trip.toDate}</div>
+                                        <div className="text-sm text-gray-600 flex items-center gap-1">
+                                            <span>{trip.toDate}</span>
+                                            {renderTimeIcon(trip.toDate)}
+                                        </div>
                                         <div className="text-sm text-orange-500">
                                             Drop Loaded Trailer
                                         </div>
