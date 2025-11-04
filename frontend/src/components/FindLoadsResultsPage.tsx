@@ -179,6 +179,7 @@ export function FindLoadsResultsPage({
     const advancedFilterCount = useMemo(() => {
         let count = 0;
         if (filters.minLoadedRpm != null) count += 1;
+        if (filters.minRcpm != null) count += 1;
         if (filters.minDistance != null && filters.minDistance > 0) count += 1;
         if (filters.maxDistance != null) count += 1;
         if (filters.serviceExclusions.length > 0) count += filters.serviceExclusions.length;

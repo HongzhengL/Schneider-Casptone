@@ -124,8 +124,12 @@ export function SwipeableTripCard({
         }
     };
 
-    // Day/Night icon helpers
-    const hasDayNightIcon = (text: string) => /[☀🌙🌞🌜]/.test(text);
+    // Day/Night icon helpers (avoid regex with surrogate pairs for lint compatibility)
+    const hasDayNightIcon = (text: string) => {
+        const t = text ?? '';
+        const icons = ['☀', '🌙', '🌞', '🌜'];
+        return icons.some((ch) => t.includes(ch));
+    };
 
     const parseHour = (text: string): number[] => {
         const hours: number[] = [];
