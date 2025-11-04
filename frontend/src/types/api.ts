@@ -55,6 +55,8 @@ export interface LoadRecord {
     loadedRpmNum: number;
     totalRpm: string;
     totalRpmNum: number;
+    rcpm?: string;
+    rcpmNum?: number;
     loadType: string;
     fromLocation: string;
     fromDate: string;
@@ -153,6 +155,7 @@ export interface DriverPortalResponse {
 
 export interface AdvancedFilterValues {
     minLoadedRpm: number | null;
+    minRcpm: number | null;
     minDistance: number | null;
     maxDistance: number | null;
     serviceExclusions: string[];

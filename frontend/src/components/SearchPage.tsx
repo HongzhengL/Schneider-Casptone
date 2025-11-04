@@ -341,6 +341,7 @@ export function SearchPage({
         if (filters.minDistance != null && filters.minDistance > 0) count += 1;
         if (filters.maxDistance != null) count += 1;
         if (filters.serviceExclusions.length > 0) count += filters.serviceExclusions.length;
+        if (filters.minRcpm != null) count += 1;
         return count;
     }, [filters]);
 
@@ -357,6 +358,9 @@ export function SearchPage({
         }
         if (filters.serviceExclusions.length > 0) {
             summary.push(`Exclusions ${filters.serviceExclusions.length}`);
+        }
+        if (filters.minRcpm != null) {
+            summary.push(`Min RCPM $${filters.minRcpm.toFixed(2)}`);
         }
         return summary;
     }, [filters]);
@@ -1257,6 +1261,7 @@ export function SearchPage({
                 onOpenChange={setShowAdvancedFilters}
                 value={{
                     minLoadedRpm: filters.minLoadedRpm,
+                    minRcpm: filters.minRcpm,
                     minDistance: filters.minDistance,
                     maxDistance: filters.maxDistance,
                     serviceExclusions: filters.serviceExclusions,

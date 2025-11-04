@@ -24,6 +24,7 @@ export function AdvancedFiltersDialog({
     onApply,
 }: AdvancedFiltersDialogProps) {
     const [minLoadedRpm, setMinLoadedRpm] = useState<number | null>(null);
+    const [minRcpm, setMinRcpm] = useState<number | null>(null);
     const [minDistance, setMinDistance] = useState<number>(0);
     const [maxDistance, setMaxDistance] = useState<number>(Number.POSITIVE_INFINITY);
     const [serviceExclusions, setServiceExclusions] = useState<string[]>([]);
@@ -32,6 +33,7 @@ export function AdvancedFiltersDialog({
 
     useEffect(() => {
         setMinLoadedRpm(value.minLoadedRpm != null ? value.minLoadedRpm : null);
+        setMinRcpm(value.minRcpm != null ? value.minRcpm : null);
         setMinDistance(value.minDistance != null ? value.minDistance : 0);
         setMaxDistance(value.maxDistance != null ? value.maxDistance : Number.POSITIVE_INFINITY);
         setServiceExclusions(value.serviceExclusions);
@@ -146,6 +148,7 @@ export function AdvancedFiltersDialog({
 
         onApply({
             minLoadedRpm: minLoadedRpm,
+            minRcpm: minRcpm,
             minDistance: minDistance === 0 ? null : minDistance,
             maxDistance: adjustedMaxNumber === Number.POSITIVE_INFINITY ? null : adjustedMaxNumber,
             serviceExclusions: [...serviceExclusions].sort(),
@@ -186,6 +189,7 @@ export function AdvancedFiltersDialog({
                     {(() => {
                         const chips: string[] = [];
                         if (minLoadedRpm != null) chips.push(`Min RPM $${minLoadedRpm.toFixed(2)}`);
+                        if (minRcpm != null) chips.push(`Min RCPM $${minRcpm.toFixed(2)}`);
                         if (minDistance > 0) chips.push(`Min ${minDistance} mi`);
                         if (Number.isFinite(maxDistance)) chips.push(`Max ${maxDistance} mi`);
                         if (serviceExclusions.length > 0)
@@ -423,6 +427,51 @@ export function AdvancedFiltersDialog({
                                         </details>
                                     );
                                 })}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* RCPM Filter */}
+                    <Card className="border border-border">
+                        <CardHeader className="py-3 px-4">
+                            <CardTitle className="text-sm">Rate Filters</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 py-3 px-4">
+                            <div>
+                                <label
+                                    htmlFor="min-rcpm"
+                                    className="block text-sm font-medium mb-1"
+                                >
+                                    Minimum RCPM
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm">$</span>
+                                    <Input
+                                        id="min-rcpm"
+                                        type="number"
+                                        inputMode="decimal"
+                                        step="0.01"
+                                        min={0}
+                                        value={minRcpm ?? ''}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (v === '') {
+                                                setMinRcpm(null);
+                                            } else {
+                                                const n = Number(v);
+                                                setMinRcpm(
+                                                    Number.isFinite(n) ? Math.max(0, n) : null
+                                                );
+                                            }
+                                        }}
+                                        className="w-28"
+                                        placeholder="e.g. 1.75"
+                                        aria-label="Minimum RCPM"
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Filters by revenue per combined mile.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
