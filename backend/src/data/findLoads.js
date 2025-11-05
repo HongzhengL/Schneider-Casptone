@@ -290,7 +290,11 @@ export const findLoads = Array.from({ length: 100 }, (_, idx) => {
     const loadedRpmNum = rpm;
     const totalRpmNum = Number((rpm + 0.12 + (idx % 4) * 0.05).toFixed(2));
 
+    // Compute distance to origin first; used by RCPM
     const distanceToOrigin = Number((8.5 + (idx % 27) * 2.25 + sequence * 1.75).toFixed(1));
+    // Revenue per Combined Mile (heuristic): includes deadhead to origin
+    const rcpmBaseMiles = distanceNum + distanceToOrigin;
+    const rcpmNum = Number((priceNum / Math.max(1, rcpmBaseMiles)).toFixed(2));
 
     const serviceNoteCount = 1 + ((idx + sequence) % 2);
     const serviceNotes = [];
@@ -323,6 +327,8 @@ export const findLoads = Array.from({ length: 100 }, (_, idx) => {
         loadedRpmNum,
         totalRpm: `$${totalRpmNum.toFixed(2)}`,
         totalRpmNum,
+        rcpm: `$${rcpmNum.toFixed(2)}`,
+        rcpmNum,
         loadType: loadProfile.type,
         fromLocation,
         fromDate: formatDisplayDate(pickupDate),

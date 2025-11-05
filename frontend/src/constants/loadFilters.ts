@@ -2,6 +2,7 @@ import type { LoadSearchFilters } from '../types/api';
 
 export const createDefaultLoadFilters = (): LoadSearchFilters => ({
     minLoadedRpm: null,
+    minRcpm: null,
     minDistance: null,
     maxDistance: null,
     serviceExclusions: [],

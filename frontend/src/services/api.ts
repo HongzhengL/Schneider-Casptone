@@ -92,6 +92,9 @@ const buildLoadQuery = (filters?: LoadSearchFilters) => {
     if (filters.minLoadedRpm != null) {
         params.set('minLoadedRpm', filters.minLoadedRpm.toString());
     }
+    if (filters.minRcpm != null) {
+        params.set('minRcpm', filters.minRcpm.toString());
+    }
 
     if (filters.minDistance != null) {
         params.set('minDistance', filters.minDistance.toString());

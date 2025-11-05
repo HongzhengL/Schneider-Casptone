@@ -59,6 +59,7 @@ app.get('/api/notices', (_req, res) => {
 app.get('/api/loads/find', (req, res) => {
     const {
         minLoadedRpm,
+        minRcpm,
         minDistance,
         maxDistance,
         serviceExclusions,
@@ -69,6 +70,7 @@ app.get('/api/loads/find', (req, res) => {
     } = req.query;
 
     const minLoaded = minLoadedRpm ? Number(minLoadedRpm) : 0;
+    const minRcpmNum = minRcpm ? Number(minRcpm) : 0;
     const minDist = minDistance ? Number(minDistance) : 0;
     const maxDist =
         maxDistance && maxDistance !== '1000+' ? Number(maxDistance) : Number.POSITIVE_INFINITY;
@@ -84,6 +86,8 @@ app.get('/api/loads/find', (req, res) => {
         if (load.loadedRpmNum < minLoaded) return false;
         if (load.distanceNum < minDist) return false;
         if (load.distanceNum > maxDist) return false;
+        if (minRcpmNum && (typeof load.rcpmNum !== 'number' || load.rcpmNum < minRcpmNum))
+            return false;
 
         if (exclusionList.length > 0) {
             const tags = Array.isArray(load.serviceTags) ? load.serviceTags : [];
