@@ -43,17 +43,23 @@ async function request<T>(path: string, init?: globalThis.RequestInit): Promise<
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        const message = `Request to ${path} failed with ${response.status}`;
-        throw new ApiError(message, response.status);
-    }
-
-    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-        return undefined as T;
-    }
-
     const text = await response.text();
-    if (!text) {
+
+    if (!response.ok) {
+        let errorMessage = `Request to ${path} failed with ${response.status}`;
+        try {
+            if (text) {
+                const errorData = JSON.parse(text);
+                errorMessage =
+                    errorData.error || errorData.message || errorData.details || errorMessage;
+            }
+        } catch {
+            // If parsing fails, use the default message
+        }
+        throw new ApiError(errorMessage, response.status);
+    }
+
+    if (response.status === 204 || response.headers.get('Content-Length') === '0' || !text) {
         return undefined as T;
     }
 

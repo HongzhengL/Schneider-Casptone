@@ -5,6 +5,7 @@ import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { SwipeableTripCard } from './SwipeableTripCard';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
+import { FixedCoverageInsight } from './FixedCoverageInsight';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
 
@@ -213,6 +214,11 @@ export function FindLoadsResultsPage({
                     <SlidersHorizontal className="w-6 h-6" />
                 </button>
             </div>
+
+            {/* Fixed Coverage Insight */}
+            {!isLoading && !error && (
+                <FixedCoverageInsight trips={visibleTrips} periodType="week" />
+            )}
 
             {/* Filters */}
             <div className="p-4 space-y-4 border-b bg-accent">
