@@ -10,9 +10,23 @@ const router = express.Router();
 router.use(requireAuth);
 
 const saveSettingsValidation = [
-    body('mpg').isNumeric().withMessage('MPG must be a number'),
-    body('fuelPrice').isNumeric().withMessage('Fuel price must be a number'),
-    body('useProMode').isBoolean().withMessage('useProMode must be a boolean'),
+    body('mpg')
+        .isNumeric().withMessage('MPG must be a number')
+        .custom((value) => value >= 0).withMessage('MPG must not be negative'),
+    body('fuelPrice')
+        .isNumeric().withMessage('Fuel price must be a number')
+        .custom((value) => value >= 0).withMessage('Fuel price must not be negative'),
+    body('useProMode')
+        .isBoolean().withMessage('useProMode must be a boolean'),
+    body('periodValue')
+        .isInt({ min: 1 }).withMessage('Period value must be a positive integer'),
+    body('periodUnit')
+        .isIn(['week', 'month', 'year']).withMessage('Period unit must be one of: week, month, year'),
+    body('otherNumericField')
+        .optional()
+        .isNumeric().withMessage('Other numeric field must be a number')
+        .custom((value) => value >= 0).withMessage('Other numeric field must not be negative'),
+    // Add more fields as needed, following the same pattern
     handleValidationErrors,
 ];
 
