@@ -87,12 +87,7 @@ function TabsContent({ value, className, children, ...props }: TabsContentProps)
     const isActive = context && context.value === value;
 
     return (
-        <div
-            className={cn(className)}
-            aria-hidden={!isActive}
-            hidden={!isActive}
-            {...props}
-        >
+        <div className={cn(className)} aria-hidden={!isActive} hidden={!isActive} {...props}>
             {isActive ? children : null}
         </div>
     );
