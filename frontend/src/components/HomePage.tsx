@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Bell, Truck } from 'lucide-react';
 import { Button } from './ui/button';
+import { DowntimeCostReminder } from './DowntimeCostReminder';
 import { fetchSuggestedLoads, ApiError } from '../services/api';
 import type { SuggestedLoad } from '../types/api';
 
@@ -12,6 +13,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Placeholder for fixed cost per day; in a real application this value would be
+    // provided by user settings or fetched from a backend API. It represents
+    // the daily fixed cost used to calculate downtime expenses.
+    const FIXED_COST_PER_DAY = 150;
 
     useEffect(() => {
         let isMounted = true;
@@ -62,6 +68,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
                 <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
+                <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
             </div>
 
             {/* Quick Action Section */}
