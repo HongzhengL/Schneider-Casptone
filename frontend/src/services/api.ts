@@ -15,6 +15,7 @@ import type {
     ProfileInput,
     SignupResponse,
 } from '../types/api';
+import type { ProfitabilitySettings } from '../components/ProfitabilitySettingsPage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
 
@@ -244,5 +245,19 @@ export async function signUp(payload: SignupPayload): Promise<SignupResponse> {
     return request<SignupResponse>('/auth/signup', {
         method: 'POST',
         body: JSON.stringify(payload),
+    });
+}
+
+// Profitability Settings API
+export async function fetchProfitabilitySettings(): Promise<ProfitabilitySettings> {
+    return request<ProfitabilitySettings>('/profitability/settings');
+}
+
+export async function saveProfitabilitySettings(
+    settings: ProfitabilitySettings
+): Promise<ProfitabilitySettings> {
+    return request<ProfitabilitySettings>('/profitability/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
     });
 }

@@ -16,6 +16,7 @@ import {
 import { defaultMetrics } from './data/metrics.js';
 import { authRouter } from './routes/auth.js';
 import { profilesRouter } from './routes/profiles.js';
+import { profitabilitySettingsRouter } from './routes/profitabilitySettings.js';
 import { buildAuthGuard } from './middleware/auth.js';
 import { errorHandler, requestIdMiddleware } from './middleware/errorHandler.js';
 
@@ -41,6 +42,7 @@ app.use('/api', authGuard);
 
 app.use('/api/auth', authRouter);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/profitability/settings', profitabilitySettingsRouter);
 
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });

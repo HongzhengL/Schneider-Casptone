@@ -134,6 +134,7 @@ export function AdvancedFiltersDialog({
 
     const handleReset = () => {
         setMinLoadedRpm(null);
+        setMinRcpm(null);
         setMinDistance(0);
         setMaxDistance(Number.POSITIVE_INFINITY);
         setServiceExclusions([]);
@@ -184,7 +185,7 @@ export function AdvancedFiltersDialog({
                     </DialogTitle>
                     <DialogDescription className="sr-only">
                         Configure advanced filtering options for load search including minimum RPM,
-                        distance range, and service exclusions.
+                        minimum RCPM, distance range, and service exclusions.
                     </DialogDescription>
                     {(() => {
                         const chips: string[] = [];

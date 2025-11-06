@@ -5,6 +5,10 @@ import { SearchPage } from './components/SearchPage';
 import { FindLoadsResultsPage } from './components/FindLoadsResultsPage';
 import { ResultsPage } from './components/ResultsPage';
 import { SettingsPage } from './components/SettingsPage';
+import {
+    ProfitabilitySettingsPage,
+    type ProfitabilitySettings,
+} from './components/ProfitabilitySettingsPage';
 import { MorePage } from './components/MorePage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
@@ -20,55 +24,13 @@ import {
     updateProfile,
     deleteProfile as apiDeleteProfile,
     applyProfile as apiApplyProfile,
+    fetchProfitabilitySettings,
+    saveProfitabilitySettings,
 } from './services/api';
+import { createEmptyProfitabilitySettings } from './constants/profitabilitySettings';
 import type { LoadSearchFilters, Metric, Profile } from './types/api';
-
-const fallbackMetrics: Metric[] = [
-    { id: 'distance', label: 'Distance', enabled: true },
-    { id: 'weight', label: 'Weight', enabled: true },
-    { id: 'loadedRpm', label: 'Loaded RPM', enabled: true },
-    { id: 'totalRpm', label: 'Est Total RPM', enabled: false },
-    { id: 'rcpm', label: 'RCPM', enabled: false },
-    { id: 'loadType', label: 'Load Type', enabled: false },
-];
-
-const createDefaultLoadFilters = (): LoadSearchFilters => {
-    return {
-        minLoadedRpm: null,
-        minRcpm: null,
-        minDistance: null,
-        maxDistance: null,
-        serviceExclusions: [],
-        confirmedOnly: false,
-        standardNetworkOnly: false,
-        originRadius: null,
-        destination: null,
-        destinationState: null,
-        destinationRadius: null,
-        pickupDateFrom: null,
-        pickupDateTo: null,
-        dropDateFrom: null,
-        dropDateTo: null,
-    };
-};
-
-const normalizeFilters = (
-    incoming: Partial<LoadSearchFilters> | null | undefined
-): LoadSearchFilters => {
-    const defaults = createDefaultLoadFilters();
-    return {
-        ...defaults,
-        ...(incoming ?? {}),
-        serviceExclusions: incoming?.serviceExclusions ?? defaults.serviceExclusions,
-        originRadius: incoming?.originRadius ?? defaults.originRadius,
-        minRcpm: incoming?.minRcpm ?? defaults.minRcpm,
-    };
-};
-
-const normalizeProfile = (profile: Profile): Profile => ({
-    ...profile,
-    filters: normalizeFilters(profile.filters),
-});
+import { createDefaultLoadFilters } from './constants/loadFilters';
+import { fallbackMetrics, normalizeFilters, normalizeProfile } from './utils/profileHelpers';
 
 export default function App() {
     const { isDark } = useTheme();
@@ -82,6 +44,9 @@ export default function App() {
     const [profilesLoading, setProfilesLoading] = useState(true);
     const [loadFilters, setLoadFilters] = useState<LoadSearchFilters>(() =>
         createDefaultLoadFilters()
+    );
+    const [profitabilitySettings, setProfitabilitySettings] = useState<ProfitabilitySettings>(
+        createEmptyProfitabilitySettings()
     );
     const { isAuthenticated, isInitializing } = useAuth();
     const [authView, setAuthView] = useState<'login' | 'signup'>('login');
@@ -168,6 +133,40 @@ export default function App() {
         };
     }, []);
 
+    // Load profitability settings
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!isAuthenticated) {
+            setProfitabilitySettings(createEmptyProfitabilitySettings());
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        const loadSettings = async () => {
+            try {
+                const settings = await fetchProfitabilitySettings();
+                if (!isMounted) {
+                    return;
+                }
+                setProfitabilitySettings(settings);
+            } catch (error) {
+                if (!isMounted) {
+                    return;
+                }
+                console.error('Failed to load profitability settings:', error);
+                setProfitabilitySettings(createEmptyProfitabilitySettings());
+            }
+        };
+
+        loadSettings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated]);
+
     // Profile management helpers (can be passed to pages later)
     const handleCreateProfile = async (name: string) => {
         const newProfile = normalizeProfile(await createProfile({ name, filters: loadFilters }));
@@ -193,6 +192,16 @@ export default function App() {
         const normalizedFilters = normalizeFilters(filters);
         setLoadFilters(normalizedFilters);
         return normalizedFilters;
+    };
+
+    const handleSaveProfitabilitySettings = async (settings: ProfitabilitySettings) => {
+        try {
+            const savedSettings = await saveProfitabilitySettings(settings);
+            setProfitabilitySettings(savedSettings);
+        } catch (error) {
+            console.error('Failed to save profitability settings:', error);
+            throw error;
+        }
     };
 
     const renderCurrentPage = () => {
@@ -237,6 +246,14 @@ export default function App() {
                         onNavigate={setCurrentPage}
                         isLoadingDefaults={metricsLoading}
                         loadError={metricsError}
+                    />
+                );
+            case 'profitability-settings':
+                return (
+                    <ProfitabilitySettingsPage
+                        onNavigate={setCurrentPage}
+                        settings={profitabilitySettings}
+                        onSave={handleSaveProfitabilitySettings}
                     />
                 );
             case 'more':
