@@ -52,7 +52,8 @@ BEGIN
   ) THEN
     CREATE POLICY "Users can update their own profitability settings"
       ON profitability_settings FOR UPDATE
-      USING (auth.uid() = user_id);
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
   END IF;
 
   -- Policy for DELETE
