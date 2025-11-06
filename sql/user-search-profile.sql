@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     filters JSONB DEFAULT '{}',
