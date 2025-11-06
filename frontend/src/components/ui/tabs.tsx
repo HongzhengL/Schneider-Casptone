@@ -84,13 +84,16 @@ type TabsContentProps = React.ComponentProps<'div'> & {
 function TabsContent({ value, className, children, ...props }: TabsContentProps) {
     const context = React.useContext(TabsContext);
 
-    if (!context || context.value !== value) {
-        return null;
-    }
+    const isActive = context && context.value === value;
 
     return (
-        <div className={cn(className)} {...props}>
-            {children}
+        <div
+            className={cn(className)}
+            aria-hidden={!isActive}
+            hidden={!isActive}
+            {...props}
+        >
+            {isActive ? children : null}
         </div>
     );
 }
