@@ -8,6 +8,7 @@ import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
 import { FixedCoverageInsight } from './FixedCoverageInsight';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
+import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
 
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
@@ -32,6 +33,7 @@ interface FindLoadsResultsPageProps {
     onNavigate: (page: string) => void;
     filters: LoadSearchFilters;
     onFiltersChange: (filters: LoadSearchFilters) => void;
+    profitabilitySettings: ProfitabilitySettings;
 }
 
 export function FindLoadsResultsPage({
@@ -39,6 +41,7 @@ export function FindLoadsResultsPage({
     onNavigate,
     filters,
     onFiltersChange,
+    profitabilitySettings,
 }: FindLoadsResultsPageProps) {
     const [tripData, setTripData] = useState<LoadRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -316,6 +319,7 @@ export function FindLoadsResultsPage({
                             customMetrics={customMetrics}
                             onDislike={handleDislike}
                             onUndoDislike={handleUndoDislike}
+                            profitabilitySettings={profitabilitySettings}
                         />
                     ))
                 ) : (

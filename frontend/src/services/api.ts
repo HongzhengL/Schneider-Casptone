@@ -267,3 +267,7 @@ export async function saveProfitabilitySettings(
         body: JSON.stringify(settings),
     });
 }
+
+export async function fetchProfitabilityAverages(): Promise<ProfitabilitySettings> {
+    return request<ProfitabilitySettings>('/profitability/settings/averages');
+}
