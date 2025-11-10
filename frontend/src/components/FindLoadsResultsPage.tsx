@@ -8,6 +8,8 @@ import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
 import { FixedCoverageInsight } from './FixedCoverageInsight';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
+import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
+import { calculateDriverFixedCosts, calculateDriverRollingCpm } from '../utils/profitability';
 
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
@@ -32,6 +34,7 @@ interface FindLoadsResultsPageProps {
     onNavigate: (page: string) => void;
     filters: LoadSearchFilters;
     onFiltersChange: (filters: LoadSearchFilters) => void;
+    profitabilitySettings: ProfitabilitySettings;
 }
 
 export function FindLoadsResultsPage({
@@ -39,6 +42,7 @@ export function FindLoadsResultsPage({
     onNavigate,
     filters,
     onFiltersChange,
+    profitabilitySettings,
 }: FindLoadsResultsPageProps) {
     const [tripData, setTripData] = useState<LoadRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +124,15 @@ export function FindLoadsResultsPage({
     };
 
     const visibleTrips = getSortedTrips();
+
+    const driverRollingCpm = useMemo(
+        () => calculateDriverRollingCpm(profitabilitySettings),
+        [profitabilitySettings]
+    );
+    const driverFixedCosts = useMemo(
+        () => calculateDriverFixedCosts(profitabilitySettings),
+        [profitabilitySettings]
+    );
 
     const filterChips = useMemo(() => {
         const chips: string[] = [];
@@ -227,7 +240,12 @@ export function FindLoadsResultsPage({
 
             {/* Fixed Coverage Insight */}
             {!isLoading && !error && (
-                <FixedCoverageInsight trips={visibleTrips} periodType="week" />
+                <FixedCoverageInsight
+                    trips={visibleTrips}
+                    periodType="week"
+                    rollingCostPerMile={driverRollingCpm}
+                    fixedCostPerPeriod={driverFixedCosts.weekly}
+                />
             )}
 
             {/* Filters */}
@@ -316,6 +334,7 @@ export function FindLoadsResultsPage({
                             customMetrics={customMetrics}
                             onDislike={handleDislike}
                             onUndoDislike={handleUndoDislike}
+                            profitabilitySettings={profitabilitySettings}
                         />
                     ))
                 ) : (

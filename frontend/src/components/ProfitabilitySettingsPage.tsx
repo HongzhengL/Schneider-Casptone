@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { ChevronLeft, TrendingUp, DollarSign, Info, Plus, X } from 'lucide-react';
+import { ChevronLeft, TrendingUp, DollarSign, Info, Plus, X, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Switch } from './ui/switch';
 import { toast } from 'sonner';
+import { fetchProfitabilityAverages } from '../services/api';
+import { calculateFixedCostsByMode, calculateRollingCpmByMode } from '../utils/profitability';
 
 type PeriodUnit = 'week' | 'month' | 'year';
 type ActiveTab = 'simple' | 'pro';
@@ -101,95 +103,6 @@ const parseNumericInput = (value: string) => {
     return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const convertToMonthly = (amount: number, period: number, unit: PeriodUnit) => {
-    if (period <= 0) {
-        return 0;
-    }
-    const normalized = amount / period;
-
-    switch (unit) {
-        case 'week':
-            return normalized * 4.33;
-        case 'year':
-            return normalized / 12;
-        default:
-            return normalized;
-    }
-};
-
-const calculateRollingCpm = (settings: ProfitabilitySettings, tab: ActiveTab) => {
-    const fuel = settings.mpg > 0 ? settings.fuelPrice / settings.mpg : 0;
-
-    if (tab === 'pro') {
-        const tires = settings.tiresMiles > 0 ? settings.tiresDollars / settings.tiresMiles : 0;
-        const maintenance =
-            settings.maintenanceMilesDetailed > 0
-                ? settings.maintenanceDollarsDetailed / settings.maintenanceMilesDetailed
-                : 0;
-        const oil =
-            settings.oilChangeMiles > 0 ? settings.oilChangeDollars / settings.oilChangeMiles : 0;
-        const def =
-            settings.defFluidMiles > 0 ? settings.defFluidDollars / settings.defFluidMiles : 0;
-        const tolls = settings.tollsMiles > 0 ? settings.tollsDollars / settings.tollsMiles : 0;
-        return fuel + tires + maintenance + oil + def + tolls;
-    }
-
-    const maintenance =
-        settings.maintenanceMiles > 0 ? settings.maintenanceDollars / settings.maintenanceMiles : 0;
-    return fuel + maintenance;
-};
-
-const calculateFixedCosts = (settings: ProfitabilitySettings, tab: ActiveTab) => {
-    if (tab === 'pro') {
-        const monthly =
-            convertToMonthly(
-                settings.truckPayment,
-                settings.truckPaymentPeriod,
-                settings.truckPaymentUnit
-            ) +
-            convertToMonthly(
-                settings.trailerPayment,
-                settings.trailerPaymentPeriod,
-                settings.trailerPaymentUnit
-            ) +
-            convertToMonthly(settings.insurance, settings.insurancePeriod, settings.insuranceUnit) +
-            convertToMonthly(settings.permits, settings.permitsPeriod, settings.permitsUnit) +
-            convertToMonthly(
-                settings.eldSubscription,
-                settings.eldSubscriptionPeriod,
-                settings.eldSubscriptionUnit
-            ) +
-            convertToMonthly(
-                settings.phoneInternet,
-                settings.phoneInternetPeriod,
-                settings.phoneInternetUnit
-            ) +
-            convertToMonthly(settings.parking, settings.parkingPeriod, settings.parkingUnit) +
-            convertToMonthly(
-                settings.softwareTools,
-                settings.softwareToolsPeriod,
-                settings.softwareToolsUnit
-            ) +
-            settings.otherFixed.reduce(
-                (sum, item) => sum + convertToMonthly(item.amount, item.period, item.unit),
-                0
-            );
-
-        return {
-            monthly,
-            weekly: monthly / 4.33,
-            daily: monthly / 30,
-        };
-    }
-
-    const monthly = settings.monthlyFixedBundle;
-    return {
-        monthly,
-        weekly: monthly / 4.33,
-        daily: monthly / 30,
-    };
-};
-
 export function ProfitabilitySettingsPage({
     onNavigate,
     settings: initialSettings,
@@ -199,15 +112,19 @@ export function ProfitabilitySettingsPage({
     const [activeTab, setActiveTab] = useState<ActiveTab>(
         initialSettings.useProMode ? 'pro' : 'simple'
     );
+    const [isPrefilling, setIsPrefilling] = useState(false);
 
     useEffect(() => {
         setSettings(initialSettings);
         setActiveTab(initialSettings.useProMode ? 'pro' : 'simple');
     }, [initialSettings]);
 
-    const rcpm = useMemo(() => calculateRollingCpm(settings, activeTab), [settings, activeTab]);
+    const rcpm = useMemo(
+        () => calculateRollingCpmByMode(settings, activeTab),
+        [settings, activeTab]
+    );
     const fixedCosts = useMemo(
-        () => calculateFixedCosts(settings, activeTab),
+        () => calculateFixedCostsByMode(settings, activeTab),
         [settings, activeTab]
     );
 
@@ -237,15 +154,20 @@ export function ProfitabilitySettingsPage({
         }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const updated = {
             ...settings,
             useProMode: activeTab === 'pro',
         };
 
-        onSave(updated);
-        toast.success('Profitability settings saved!');
-        onNavigate('more');
+        try {
+            await onSave(updated);
+            toast.success('Profitability settings saved!');
+            onNavigate('more');
+        } catch (error) {
+            console.error('Failed to save profitability settings', error);
+            toast.error('Unable to save your settings. Please try again.');
+        }
     };
 
     const addOtherFixedCost = () => {
@@ -263,6 +185,24 @@ export function ProfitabilitySettingsPage({
             ...prev,
             otherFixed: prev.otherFixed.filter((_, i) => i !== index),
         }));
+    };
+
+    const handleApplyAverageData = async () => {
+        try {
+            setIsPrefilling(true);
+            const averages = await fetchProfitabilityAverages();
+            setSettings((prev) => ({
+                ...prev,
+                ...averages,
+                otherFixed: Array.isArray(averages.otherFixed) ? averages.otherFixed : [],
+            }));
+            toast.success('Average driver data applied to your settings.');
+        } catch (error) {
+            console.error(error);
+            toast.error('Unable to load average driver data right now.');
+        } finally {
+            setIsPrefilling(false);
+        }
     };
 
     return (
@@ -291,6 +231,20 @@ export function ProfitabilitySettingsPage({
                         </p>
                     </div>
                 </div>
+            </div>
+
+            <div className="mx-4 mt-3 flex flex-col items-stretch gap-2">
+                <Button
+                    onClick={handleApplyAverageData}
+                    disabled={isPrefilling}
+                    className="w-full bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-md hover:from-fuchsia-600 hover:to-violet-700 focus-visible:ring-violet-500"
+                >
+                    <Sparkles className="w-4 h-4" />
+                    {isPrefilling ? 'Loading averages...' : 'Auto-Fill with Industry Averages'}
+                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                    Uses data from your available loads to calculate recommended starting values.
+                </p>
             </div>
 
             <div className="p-4">

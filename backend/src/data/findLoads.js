@@ -288,7 +288,7 @@ export const findLoads = Array.from({ length: 100 }, (_, idx) => {
     const priceNum = Math.round(distanceNum * rpm);
 
     const loadedRpmNum = rpm;
-    const totalRpmNum = Number((rpm + 0.12 + (idx % 4) * 0.05).toFixed(2));
+    const totalRpmNum = Number((rpm - 0.12 - (idx % 4) * 0.05).toFixed(2));
 
     // Compute distance to origin first; used by RCPM
     const distanceToOrigin = Number((8.5 + (idx % 27) * 2.25 + sequence * 1.75).toFixed(1));

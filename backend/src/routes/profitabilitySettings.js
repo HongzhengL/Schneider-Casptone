@@ -4,34 +4,49 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import { ProfitabilitySettingsService } from '../utils/profitabilitySettingsService.js';
+import { averageProfitabilitySettings } from '../data/profitabilityAverages.js';
 
 const router = express.Router();
 
 router.use(requireAuth);
 
+const numericRequirements = [
+    'mpg',
+    'fuelPrice',
+    'maintenanceDollars',
+    'maintenanceMiles',
+    'monthlyFixedBundle',
+    'marginCents',
+    'marginPercent',
+];
+
 const saveSettingsValidation = [
-    body('mpg')
-        .isNumeric()
-        .withMessage('MPG must be a number')
-        .custom((value) => value >= 0)
-        .withMessage('MPG must not be negative'),
-    body('fuelPrice')
-        .isNumeric()
-        .withMessage('Fuel price must be a number')
-        .custom((value) => value >= 0)
-        .withMessage('Fuel price must not be negative'),
+    ...numericRequirements.map((field) =>
+        body(field)
+            .isNumeric()
+            .withMessage(`${field} must be a number`)
+            .custom((value) => Number(value) >= 0)
+            .withMessage(`${field} must not be negative`)
+    ),
+    body('useWhicheverGreater').isBoolean().withMessage('useWhicheverGreater must be a boolean'),
+    body('useRealTimeFuel').isBoolean().withMessage('useRealTimeFuel must be a boolean'),
     body('useProMode').isBoolean().withMessage('useProMode must be a boolean'),
-    body('periodValue').isInt({ min: 1 }).withMessage('Period value must be a positive integer'),
-    body('periodUnit')
-        .isIn(['week', 'month', 'year'])
-        .withMessage('Period unit must be one of: week, month, year'),
-    body('otherNumericField')
-        .optional()
-        .isNumeric()
-        .withMessage('Other numeric field must be a number')
-        .custom((value) => value >= 0)
-        .withMessage('Other numeric field must not be negative'),
-    // Add more fields as needed, following the same pattern
+    body('otherFixed')
+        .isArray()
+        .withMessage('otherFixed must be an array')
+        .custom((value) =>
+            value.every(
+                (item) =>
+                    typeof item.name === 'string' &&
+                    item.name.length <= 100 &&
+                    typeof item.amount === 'number' &&
+                    item.amount >= 0 &&
+                    typeof item.period === 'number' &&
+                    item.period > 0 &&
+                    ['week', 'month', 'year'].includes(item.unit)
+            )
+        )
+        .withMessage('otherFixed items must include name, amount, period, and valid unit'),
     handleValidationErrors,
 ];
 
@@ -41,6 +56,13 @@ router.get(
         const userId = req.user.id;
         const settings = await ProfitabilitySettingsService.getSettings(userId);
         res.json(settings);
+    })
+);
+
+router.get(
+    '/averages',
+    asyncHandler(async (_req, res) => {
+        res.json(averageProfitabilitySettings);
     })
 );
 

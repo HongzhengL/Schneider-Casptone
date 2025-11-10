@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { motion, PanInfo } from 'motion/react';
-import { Eye, RotateCcw, X } from 'lucide-react';
+import { Eye, RotateCcw, X, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
+import { calculateDriverRollingCpm, calculateMarginThreshold } from '../utils/profitability';
 
 interface Trip {
     id: string;
@@ -38,6 +40,7 @@ interface SwipeableTripCardProps {
     customMetrics: Metric[];
     onDislike: (tripId: string) => void;
     onUndoDislike: (tripId: string) => void;
+    profitabilitySettings: ProfitabilitySettings;
 }
 
 export function SwipeableTripCard({
@@ -45,12 +48,25 @@ export function SwipeableTripCard({
     customMetrics,
     onDislike,
     onUndoDislike,
+    profitabilitySettings,
 }: SwipeableTripCardProps) {
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    const formatCurrency = (value: number) => currencyFormatter.format(value);
+    const formatPerMile = (value: number) => `${formatCurrency(Math.abs(value))}/mi`;
+
     const [dragX, setDragX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const enabledMetrics = customMetrics.filter((m) => m.enabled);
+    const enabledMetrics = customMetrics.filter((m) => m.enabled && m.id !== 'rcpm');
+    const driverRcpm = calculateDriverRollingCpm(profitabilitySettings);
+    const marginThreshold = calculateMarginThreshold(profitabilitySettings, driverRcpm);
 
     const handleDragStart = () => {
         setIsDragging(true);
@@ -96,8 +112,6 @@ export function SwipeableTripCard({
                 return trip.loadedRpm;
             case 'totalRpm':
                 return trip.totalRpm;
-            case 'rcpm':
-                return trip.rcpm ?? '';
             case 'loadType':
                 return trip.loadType;
             default:
@@ -115,8 +129,6 @@ export function SwipeableTripCard({
                 return 'Loaded RPM:';
             case 'totalRpm':
                 return 'Est Total RPM:';
-            case 'rcpm':
-                return 'RCPM:';
             case 'loadType':
                 return 'Load Type:';
             default:
@@ -187,6 +199,28 @@ export function SwipeableTripCard({
         );
     };
 
+    const computeTotalRpm = (t: Trip): number | undefined => {
+        if (typeof t.totalRpmNum === 'number') return t.totalRpmNum;
+        if (
+            typeof t.priceNum === 'number' &&
+            typeof t.distanceNum === 'number' &&
+            t.distanceNum > 0
+        ) {
+            return Number((t.priceNum / t.distanceNum).toFixed(2));
+        }
+        return undefined;
+    };
+
+    const totalRpmValue = computeTotalRpm(trip);
+    const netPerMile =
+        totalRpmValue != null ? Number((totalRpmValue - driverRcpm).toFixed(2)) : undefined;
+    const netTotal =
+        netPerMile != null && typeof trip.distanceNum === 'number'
+            ? Number((netPerMile * trip.distanceNum).toFixed(2))
+            : undefined;
+    const netColor = netPerMile != null && netPerMile < 0 ? 'text-red-600' : 'text-green-600';
+    const NetTrendIcon = netPerMile != null && netPerMile < 0 ? TrendingDown : TrendingUp;
+
     return (
         <div className="relative rounded-lg overflow-hidden">
             {/* Background Action Area - Only revealed when swiping left */}
@@ -220,63 +254,54 @@ export function SwipeableTripCard({
                         {/* Left Side - Price and Custom Metrics */}
                         <div className="w-24 space-y-2">
                             <div className="text-2xl font-bold">{trip.price}</div>
+                            {netPerMile != null && (
+                                <div
+                                    className={`text-sm font-medium flex items-center gap-1 ${netColor}`}
+                                >
+                                    <NetTrendIcon
+                                        className={`w-4 h-4 ${netColor}`}
+                                        aria-hidden="true"
+                                    />
+                                    <span>{`${netPerMile >= 0 ? '+' : '-'}${formatPerMile(netPerMile)}`}</span>
+                                </div>
+                            )}
+                            {netTotal != null && (
+                                <div className={`text-sm font-medium ${netColor}`}>
+                                    Net:{' '}
+                                    {`${netTotal >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netTotal))}`}
+                                </div>
+                            )}
 
                             {enabledMetrics.map((metric) => {
                                 const isRpmMetric =
-                                    metric.id === 'loadedRpm' ||
-                                    metric.id === 'totalRpm' ||
-                                    metric.id === 'rcpm';
+                                    metric.id === 'loadedRpm' || metric.id === 'totalRpm';
 
                                 // Verdict helpers for Est Total RPM vs RCPM
-                                const computeRcpm = (t: Trip): number | undefined => {
-                                    if (typeof t.rcpmNum === 'number') return t.rcpmNum;
-                                    if (
-                                        typeof t.priceNum === 'number' &&
-                                        typeof t.distanceNum === 'number'
-                                    ) {
-                                        const combined = t.distanceNum + (t.distanceToOrigin ?? 0);
-                                        if (combined > 0)
-                                            return Number((t.priceNum / combined).toFixed(2));
-                                    }
-                                    return undefined;
-                                };
                                 const getVerdictForTotalRpm = (t: Trip) => {
-                                    const total =
-                                        typeof t.totalRpmNum === 'number'
-                                            ? t.totalRpmNum
-                                            : undefined;
-                                    const rcpm = computeRcpm(t);
-                                    if (total == null || rcpm == null) {
+                                    const total = computeTotalRpm(t);
+                                    if (total == null) {
                                         return {
                                             className: 'text-gray-600',
-                                            symbol: '•',
                                             verdict: 'Unknown',
                                             title: 'Insufficient data to assess',
                                         } as const;
                                     }
-                                    const min = Number(
-                                        import.meta.env.VITE_VERDICT_MARGIN_MIN ?? 0.05
-                                    );
-                                    const pct = Number(
-                                        import.meta.env.VITE_VERDICT_MARGIN_PCT ?? 0.03
-                                    );
-                                    const margin = Math.max(min, rcpm * pct);
+                                    const margin = marginThreshold;
                                     let className = 'text-amber-600';
-                                    let symbol = '≈';
                                     let verdict = 'At cost';
-                                    if (total >= rcpm + margin) {
+                                    if (total >= driverRcpm + margin) {
                                         className = 'text-green-600';
-                                        symbol = '▲';
                                         verdict = 'Contributes';
-                                    } else if (total < rcpm - margin) {
+                                    } else if (total < driverRcpm - margin) {
                                         className = 'text-red-600';
-                                        symbol = '▼';
                                         verdict = 'Burns cash';
                                     }
-                                    const title = `${verdict}: Total RPM ${total.toFixed(2)} vs RCPM ${rcpm.toFixed(
+                                    const title = `${verdict}: Total RPM ${total.toFixed(
                                         2
-                                    )} (margin ${margin.toFixed(2)})`;
-                                    return { className, symbol, verdict, title } as const;
+                                    )} vs Driver CPM ${driverRcpm.toFixed(2)} (margin ${margin.toFixed(
+                                        2
+                                    )})`;
+                                    return { className, verdict, title } as const;
                                 };
 
                                 const content = renderMetricValue(metric.id);
@@ -290,27 +315,36 @@ export function SwipeableTripCard({
                                     return (
                                         <div key={metric.id} className="text-sm">
                                             <div className="space-y-1">
-                                                <div className="text-gray-600">
+                                                <div className="text-gray-600 font-bold">
                                                     {renderMetricLabel(metric.id)}
                                                 </div>
                                                 <div
-                                                    className={`${valueClass} flex items-center gap-1`}
+                                                    className={`${valueClass} font-bold flex items-center gap-1`}
                                                     title={title}
                                                 >
-                                                    {verdict ? (
-                                                        <span aria-label={verdict.verdict}>
-                                                            {verdict.symbol}
-                                                        </span>
-                                                    ) : null}
                                                     <span>{content}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     );
                                 }
+                                const getMetricColor = (metricId: string) => {
+                                    switch (metricId) {
+                                        case 'distance':
+                                            return 'text-orange-500';
+                                        case 'weight':
+                                            return 'text-orange-500';
+                                        case 'loadType':
+                                            return 'text-orange-500';
+                                        default:
+                                            return 'text-gray-600';
+                                    }
+                                };
                                 return (
                                     <div key={metric.id} className="text-sm">
-                                        <div className="text-gray-600">{content}</div>
+                                        <div className={`${getMetricColor(metric.id)} font-bold`}>
+                                            {content}
+                                        </div>
                                     </div>
                                 );
                             })}

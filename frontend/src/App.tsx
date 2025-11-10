@@ -233,6 +233,7 @@ export default function App() {
                         onNavigate={setCurrentPage}
                         filters={loadFilters}
                         onFiltersChange={setLoadFilters}
+                        profitabilitySettings={profitabilitySettings}
                     />
                 );
             case 'results':
