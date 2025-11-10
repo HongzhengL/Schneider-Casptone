@@ -67,24 +67,40 @@ export function FixedCoverageInsight({
     actualEarnings,
     percentileRank,
 }: FixedCoverageInsightProps) {
+    const effectiveRollingCostPerMile = Number.isFinite(rollingCostPerMile)
+        ? rollingCostPerMile
+        : 0;
+    const normalizedFixedCost = Math.max(
+        0,
+        Number.isFinite(fixedCostPerPeriod) ? fixedCostPerPeriod : 0
+    );
+    const rawCovered = coveredAmount ?? 0;
+    const normalizedCovered = Math.max(0, Number.isFinite(rawCovered) ? rawCovered : 0);
+
     // Calculate potential contribution from all displayed trips
     const potentialContribution = useMemo(() => {
         return trips.reduce((sum, trip) => {
-            return sum + calculateTripContribution(trip, rollingCostPerMile);
+            return sum + calculateTripContribution(trip, effectiveRollingCostPerMile);
         }, 0);
-    }, [trips, rollingCostPerMile]);
+    }, [trips, effectiveRollingCostPerMile]);
 
     // Use provided coveredAmount or default to 0
-    const currentCovered = coveredAmount ?? 0;
+    const currentCovered = normalizedCovered;
 
     // Calculate remaining amount
-    const remaining = Math.max(0, fixedCostPerPeriod - currentCovered);
+    const remaining = Math.max(0, normalizedFixedCost - currentCovered);
 
     // Check if fixed cost is fully covered
-    const isFullyCovered = currentCovered >= fixedCostPerPeriod;
+    const isFullyCovered =
+        normalizedFixedCost === 0 ? currentCovered > 0 : currentCovered >= normalizedFixedCost;
 
     // Calculate progress percentage
-    const progressPercentage = Math.min(100, (currentCovered / fixedCostPerPeriod) * 100);
+    const progressPercentage =
+        normalizedFixedCost === 0
+            ? currentCovered > 0
+                ? 100
+                : 0
+            : Math.min(100, (currentCovered / normalizedFixedCost) * 100);
 
     // Format currency
     const formatCurrency = (amount: number) => {
@@ -100,7 +116,7 @@ export function FixedCoverageInsight({
                         <span className="text-foreground">
                             Fixed:{' '}
                             <span className="font-medium">
-                                {formatCurrency(fixedCostPerPeriod)}
+                                {formatCurrency(normalizedFixedCost)}
                             </span>
                         </span>
                         <span className="text-muted-foreground">•</span>

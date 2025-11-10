@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Switch } from './ui/switch';
 import { toast } from 'sonner';
 import { fetchProfitabilityAverages } from '../services/api';
+import { calculateFixedCostsByMode, calculateRollingCpmByMode } from '../utils/profitability';
 
 type PeriodUnit = 'week' | 'month' | 'year';
 type ActiveTab = 'simple' | 'pro';
@@ -102,95 +103,6 @@ const parseNumericInput = (value: string) => {
     return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const convertToMonthly = (amount: number, period: number, unit: PeriodUnit) => {
-    if (period <= 0) {
-        return 0;
-    }
-    const normalized = amount / period;
-
-    switch (unit) {
-        case 'week':
-            return normalized * 4.33;
-        case 'year':
-            return normalized / 12;
-        default:
-            return normalized;
-    }
-};
-
-const calculateRollingCpm = (settings: ProfitabilitySettings, tab: ActiveTab) => {
-    const fuel = settings.mpg > 0 ? settings.fuelPrice / settings.mpg : 0;
-
-    if (tab === 'pro') {
-        const tires = settings.tiresMiles > 0 ? settings.tiresDollars / settings.tiresMiles : 0;
-        const maintenance =
-            settings.maintenanceMilesDetailed > 0
-                ? settings.maintenanceDollarsDetailed / settings.maintenanceMilesDetailed
-                : 0;
-        const oil =
-            settings.oilChangeMiles > 0 ? settings.oilChangeDollars / settings.oilChangeMiles : 0;
-        const def =
-            settings.defFluidMiles > 0 ? settings.defFluidDollars / settings.defFluidMiles : 0;
-        const tolls = settings.tollsMiles > 0 ? settings.tollsDollars / settings.tollsMiles : 0;
-        return fuel + tires + maintenance + oil + def + tolls;
-    }
-
-    const maintenance =
-        settings.maintenanceMiles > 0 ? settings.maintenanceDollars / settings.maintenanceMiles : 0;
-    return fuel + maintenance;
-};
-
-const calculateFixedCosts = (settings: ProfitabilitySettings, tab: ActiveTab) => {
-    if (tab === 'pro') {
-        const monthly =
-            convertToMonthly(
-                settings.truckPayment,
-                settings.truckPaymentPeriod,
-                settings.truckPaymentUnit
-            ) +
-            convertToMonthly(
-                settings.trailerPayment,
-                settings.trailerPaymentPeriod,
-                settings.trailerPaymentUnit
-            ) +
-            convertToMonthly(settings.insurance, settings.insurancePeriod, settings.insuranceUnit) +
-            convertToMonthly(settings.permits, settings.permitsPeriod, settings.permitsUnit) +
-            convertToMonthly(
-                settings.eldSubscription,
-                settings.eldSubscriptionPeriod,
-                settings.eldSubscriptionUnit
-            ) +
-            convertToMonthly(
-                settings.phoneInternet,
-                settings.phoneInternetPeriod,
-                settings.phoneInternetUnit
-            ) +
-            convertToMonthly(settings.parking, settings.parkingPeriod, settings.parkingUnit) +
-            convertToMonthly(
-                settings.softwareTools,
-                settings.softwareToolsPeriod,
-                settings.softwareToolsUnit
-            ) +
-            settings.otherFixed.reduce(
-                (sum, item) => sum + convertToMonthly(item.amount, item.period, item.unit),
-                0
-            );
-
-        return {
-            monthly,
-            weekly: monthly / 4.33,
-            daily: monthly / 30,
-        };
-    }
-
-    const monthly = settings.monthlyFixedBundle;
-    return {
-        monthly,
-        weekly: monthly / 4.33,
-        daily: monthly / 30,
-    };
-};
-
 export function ProfitabilitySettingsPage({
     onNavigate,
     settings: initialSettings,
@@ -207,9 +119,12 @@ export function ProfitabilitySettingsPage({
         setActiveTab(initialSettings.useProMode ? 'pro' : 'simple');
     }, [initialSettings]);
 
-    const rcpm = useMemo(() => calculateRollingCpm(settings, activeTab), [settings, activeTab]);
+    const rcpm = useMemo(
+        () => calculateRollingCpmByMode(settings, activeTab),
+        [settings, activeTab]
+    );
     const fixedCosts = useMemo(
-        () => calculateFixedCosts(settings, activeTab),
+        () => calculateFixedCostsByMode(settings, activeTab),
         [settings, activeTab]
     );
 
