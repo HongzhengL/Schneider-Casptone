@@ -104,6 +104,15 @@ export function HomePage({ onNavigate }: HomePageProps) {
                         Fuel Network
                     </Button>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Button
+                        variant="outline"
+                        className="border-primary/50 text-primary hover:bg-accent"
+                        onClick={() => onNavigate('leaderboard')}
+                    >
+                        Leaderboard
+                    </Button>
+                </div>
             </div>
 
             {/* Available Assignments Section */}

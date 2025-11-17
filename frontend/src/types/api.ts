@@ -217,3 +217,12 @@ export interface SignupResponse {
     user: SupabaseUser;
     requiresConfirmation?: boolean;
 }
+
+// Leaderboard types
+export interface LeaderboardEntry {
+    rank: number;
+    driverName: string;
+    driverId: string;
+    totalMiles: number;
+    totalDeliveries: number;
+}

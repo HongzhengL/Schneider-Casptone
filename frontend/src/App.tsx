@@ -10,6 +10,7 @@ import {
     type ProfitabilitySettings,
 } from './components/ProfitabilitySettingsPage';
 import { MorePage } from './components/MorePage';
+import { LeaderboardPage } from './components/LeaderboardPage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
 import { useTheme } from './contexts/ThemeContext';
@@ -259,6 +260,8 @@ export default function App() {
                 );
             case 'more':
                 return <MorePage onNavigate={setCurrentPage} />;
+            case 'leaderboard':
+                return <LeaderboardPage onNavigate={setCurrentPage} />;
             default:
                 return <HomePage onNavigate={setCurrentPage} />;
         }

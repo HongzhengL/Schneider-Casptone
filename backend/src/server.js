@@ -14,6 +14,7 @@ import {
     appVersion,
 } from './data/driverPortal.js';
 import { defaultMetrics } from './data/metrics.js';
+import { leaderboardData } from './data/leaderboard.js';
 import { authRouter } from './routes/auth.js';
 import { profilesRouter } from './routes/profiles.js';
 import { profitabilitySettingsRouter } from './routes/profitabilitySettings.js';
@@ -230,6 +231,10 @@ app.get('/api/driver/portal', (_req, res) => {
 
 app.get('/api/settings/metrics', (_req, res) => {
     res.json(defaultMetrics);
+});
+
+app.get('/api/leaderboard', (_req, res) => {
+    res.json(leaderboardData);
 });
 
 app.use(errorHandler);

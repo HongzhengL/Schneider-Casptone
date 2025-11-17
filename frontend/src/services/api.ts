@@ -8,6 +8,7 @@ import type {
     LoadRecord,
     LoadRecordResponse,
     LoadSearchFilters,
+    LeaderboardEntry,
     Metric,
     NoticesResponse,
     SuggestedLoad,
@@ -270,4 +271,9 @@ export async function saveProfitabilitySettings(
 
 export async function fetchProfitabilityAverages(): Promise<ProfitabilitySettings> {
     return request<ProfitabilitySettings>('/profitability/settings/averages');
+}
+
+// Leaderboard API
+export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+    return request<LeaderboardEntry[]>('/leaderboard');
 }
