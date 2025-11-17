@@ -315,7 +315,7 @@ export default function App() {
                 {renderCurrentPage()}
             </main>
             <BottomNavigation currentPage={currentPage} onNavigate={setCurrentPage} />
-            <Toaster theme={isDark ? 'dark' : 'light'} />
+            <Toaster theme={isDark ? 'dark' : 'light'} position="bottom-right" />
         </div>
     );
 }

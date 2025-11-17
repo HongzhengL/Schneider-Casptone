@@ -48,6 +48,7 @@ export function FindLoadsResultsPage({
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [dislikedTrips, setDislikedTrips] = useState<string[]>([]);
+    const [comparedTrips, setComparedTrips] = useState<string[]>([]);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [sortBy, setSortBy] = useState('new');
 
@@ -86,6 +87,7 @@ export function FindLoadsResultsPage({
 
     useEffect(() => {
         setDislikedTrips([]);
+        setComparedTrips([]);
     }, [filters]);
 
     const handleDislike = (tripId: string) => {
@@ -96,8 +98,14 @@ export function FindLoadsResultsPage({
         setDislikedTrips((prev) => prev.filter((id) => id !== tripId));
     };
 
+    const handleCompare = (tripId: string) => {
+        setComparedTrips((prev) => [...prev, tripId]);
+    };
+
     const getSortedTrips = () => {
-        const filtered = tripData.filter((trip) => !dislikedTrips.includes(trip.id));
+        const filtered = tripData.filter(
+            (trip) => !dislikedTrips.includes(trip.id) && !comparedTrips.includes(trip.id)
+        );
 
         const sorted = [...filtered].sort((a, b) => {
             switch (sortBy) {
@@ -334,6 +342,7 @@ export function FindLoadsResultsPage({
                             customMetrics={customMetrics}
                             onDislike={handleDislike}
                             onUndoDislike={handleUndoDislike}
+                            onCompare={handleCompare}
                             profitabilitySettings={profitabilitySettings}
                         />
                     ))
@@ -360,7 +369,7 @@ export function FindLoadsResultsPage({
             {/* Instructions */}
             {!isLoading && !error && visibleTrips.length > 0 && (
                 <div className="p-4 text-center text-muted-foreground text-sm">
-                    Swipe left to dislike a trip
+                    Swipe left to dislike • Swipe right to compare
                 </div>
             )}
 

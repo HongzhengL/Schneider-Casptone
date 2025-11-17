@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, PanInfo } from 'motion/react';
-import { Eye, RotateCcw, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { Eye, RotateCcw, X, TrendingUp, TrendingDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
 import { calculateDriverRollingCpm, calculateMarginThreshold } from '../utils/profitability';
@@ -40,6 +40,7 @@ interface SwipeableTripCardProps {
     customMetrics: Metric[];
     onDislike: (tripId: string) => void;
     onUndoDislike: (tripId: string) => void;
+    onCompare?: (tripId: string) => void;
     profitabilitySettings: ProfitabilitySettings;
 }
 
@@ -48,6 +49,7 @@ export function SwipeableTripCard({
     customMetrics,
     onDislike,
     onUndoDislike,
+    onCompare,
     profitabilitySettings,
 }: SwipeableTripCardProps) {
     const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -92,6 +94,15 @@ export function SwipeableTripCard({
                     onClick: () => onUndoDislike(trip.id),
                 },
                 icon: <RotateCcw className="w-4 h-4" />,
+            });
+        }
+        // If swiped right more than 150px, trigger compare
+        else if (info.offset.x > 150 && onCompare) {
+            onCompare(trip.id);
+
+            // Show toast notification
+            toast.success(`Load added to compare`, {
+                duration: 3000,
             });
         }
     };
@@ -223,13 +234,24 @@ export function SwipeableTripCard({
 
     return (
         <div className="relative rounded-lg overflow-hidden">
-            {/* Background Action Area - Only revealed when swiping left */}
+            {/* Background Action Area - Revealed when swiping left (dislike) */}
             {isDragging && dragX < 0 && (
                 <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-6 rounded-lg z-0">
                     <div className="flex items-center text-white">
                         <div className="flex flex-col items-center gap-1">
                             <X className="w-8 h-8" />
                             <span className="text-sm font-medium">Dislike</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Background Action Area - Revealed when swiping right (compare) */}
+            {isDragging && dragX > 0 && (
+                <div className="absolute inset-0 bg-green-500 flex items-center justify-start px-6 rounded-lg z-0">
+                    <div className="flex items-center text-white">
+                        <div className="flex flex-col items-center gap-1">
+                            <Check className="w-8 h-8" />
+                            <span className="text-sm font-medium">Compare</span>
                         </div>
                     </div>
                 </div>
