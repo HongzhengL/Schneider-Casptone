@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, SlidersHorizontal, Eye, RotateCcw } from 'lucide-react';
-import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { SwipeableTripCard } from './SwipeableTripCard';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
 import { FixedCoverageInsight } from './FixedCoverageInsight';
+import { LoadDetailDrawer } from './LoadDetailDrawer';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
-import { calculateDriverFixedCosts, calculateDriverRollingCpm } from '../utils/profitability';
+import {
+    calculateDriverFixedCosts,
+    calculateDriverRollingCpm,
+    calculateMarginThreshold,
+} from '../utils/profitability';
 
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
@@ -50,6 +54,7 @@ export function FindLoadsResultsPage({
     const [dislikedTrips, setDislikedTrips] = useState<string[]>([]);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [sortBy, setSortBy] = useState('new');
+    const [selectedTrip, setSelectedTrip] = useState<LoadRecord | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -96,6 +101,14 @@ export function FindLoadsResultsPage({
         setDislikedTrips((prev) => prev.filter((id) => id !== tripId));
     };
 
+    const handleTripSelect = (trip: LoadRecord) => {
+        setSelectedTrip(trip);
+    };
+
+    const handleCloseDrawer = () => {
+        setSelectedTrip(null);
+    };
+
     const getSortedTrips = () => {
         const filtered = tripData.filter((trip) => !dislikedTrips.includes(trip.id));
 
@@ -132,6 +145,10 @@ export function FindLoadsResultsPage({
     const driverFixedCosts = useMemo(
         () => calculateDriverFixedCosts(profitabilitySettings),
         [profitabilitySettings]
+    );
+    const marginThreshold = useMemo(
+        () => calculateMarginThreshold(profitabilitySettings, driverRollingCpm),
+        [profitabilitySettings, driverRollingCpm]
     );
 
     const filterChips = useMemo(() => {
@@ -174,7 +191,7 @@ export function FindLoadsResultsPage({
             if (!from && !to) return null;
             const render = (value: string | null | undefined) =>
                 value ? formatDate(value).dateStr : 'Any';
-            return `${render(from)} → ${render(to)}`;
+            return `${render(from)} a??${render(to)}`;
         };
 
         const pickupRange = formatRange(filters.pickupDateFrom, filters.pickupDateTo);
@@ -215,174 +232,195 @@ export function FindLoadsResultsPage({
 
     return (
         <div className="bg-background text-foreground min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-accent">
-                <div className="flex items-center gap-3">
-                    <ChevronLeft
-                        className="w-6 h-6 cursor-pointer text-primary"
-                        onClick={() => onNavigate('search')}
+            <div className="mx-auto w-full max-w-4xl">
+                {selectedTrip ? (
+                    <LoadDetailDrawer
+                        load={selectedTrip}
+                        rcpm={driverRollingCpm}
+                        weeklyFixed={driverFixedCosts.weekly}
+                        dailyFixed={driverFixedCosts.daily}
+                        margin={marginThreshold}
+                        onClose={handleCloseDrawer}
                     />
-                    <h1 className="text-xl text-primary">Available Loads</h1>
-                </div>
-                <button
-                    onClick={() => setShowAdvancedFilters(true)}
-                    className="text-primary hover:opacity-90"
-                    aria-label={`Advanced filters${
-                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                    }`}
-                    title={`Advanced filters${
-                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                    }`}
-                >
-                    <SlidersHorizontal className="w-6 h-6" />
-                </button>
-            </div>
-
-            {/* Fixed Coverage Insight */}
-            {!isLoading && !error && (
-                <FixedCoverageInsight
-                    trips={visibleTrips}
-                    periodType="week"
-                    rollingCostPerMile={driverRollingCpm}
-                    fixedCostPerPeriod={driverFixedCosts.weekly}
-                />
-            )}
-
-            {/* Filters */}
-            <div className="p-4 space-y-4 border-b bg-accent">
-                <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                        {isLoading
-                            ? 'Loading matches…'
-                            : `${visibleTrips.length} of ${tripData.length} Matches`}
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Sort By:</span>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="w-[160px] h-8 border-none bg-transparent p-0">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="new">New</SelectItem>
-                                <SelectItem value="pickup-date">Pick-up date</SelectItem>
-                                <SelectItem value="distance">Distance</SelectItem>
-                                <SelectItem value="loaded-rpm">Loaded RPM</SelectItem>
-                                <SelectItem value="total-rpm">Est Total RPM</SelectItem>
-                                <SelectItem value="rate">Rate</SelectItem>
-                                <SelectItem value="distance-to-origin">
-                                    Distance to Origin
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <span>Confirmed Appointments Only</span>
-                        <Switch
-                            checked={filters.confirmedOnly}
-                            onCheckedChange={(checked) =>
-                                onFiltersChange({
-                                    ...filters,
-                                    confirmedOnly: checked === true,
-                                })
-                            }
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span>Standard Network Only</span>
-                        <Switch
-                            checked={filters.standardNetworkOnly}
-                            onCheckedChange={(checked) =>
-                                onFiltersChange({
-                                    ...filters,
-                                    standardNetworkOnly: checked === true,
-                                })
-                            }
-                        />
-                    </div>
-                </div>
-
-                {filterChips.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {filterChips.map((chip) => (
-                            <span
-                                key={chip}
-                                className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full"
-                            >
-                                {chip}
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Trip Cards */}
-            <div className="p-4 space-y-4 min-h-[50vh]">
-                {isLoading ? (
-                    <div className="text-sm text-muted-foreground">
-                        Loading loads based on your filters…
-                    </div>
-                ) : error ? (
-                    <div className="text-sm text-red-600">{error}</div>
-                ) : visibleTrips.length > 0 ? (
-                    visibleTrips.map((trip) => (
-                        <SwipeableTripCard
-                            key={trip.id}
-                            trip={trip}
-                            customMetrics={customMetrics}
-                            onDislike={handleDislike}
-                            onUndoDislike={handleUndoDislike}
-                            profitabilitySettings={profitabilitySettings}
-                        />
-                    ))
                 ) : (
-                    <div className="text-center py-12">
-                        <div className="text-muted-foreground mb-4">
-                            <Eye className="w-16 h-16 mx-auto mb-4" />
+                    <>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b bg-accent">
+                            <div className="flex items-center gap-3">
+                                <ChevronLeft
+                                    className="w-6 h-6 cursor-pointer text-primary"
+                                    onClick={() => onNavigate('search')}
+                                />
+                                <h1 className="text-xl text-primary">Available Loads</h1>
+                            </div>
+                            <button
+                                onClick={() => setShowAdvancedFilters(true)}
+                                className="text-primary hover:opacity-90"
+                                aria-label={`Advanced filters${
+                                    advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                                }`}
+                                title={`Advanced filters${
+                                    advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                                }`}
+                            >
+                                <SlidersHorizontal className="w-6 h-6" />
+                            </button>
                         </div>
-                        <h3 className="text-lg text-foreground mb-2">No more trips to show</h3>
-                        <p className="text-muted-foreground text-sm mb-6">
-                            You've dismissed all available trips. Check back later for new loads.
-                        </p>
-                        <button
-                            onClick={() => setDislikedTrips([])}
-                            className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-                        >
-                            <RotateCcw className="w-4 h-4 inline mr-2" />
-                            Show All Trips Again
-                        </button>
-                    </div>
+
+                        {/* Fixed Coverage Insight */}
+                        {!isLoading && !error && (
+                            <FixedCoverageInsight
+                                trips={visibleTrips}
+                                periodType="week"
+                                rollingCostPerMile={driverRollingCpm}
+                                fixedCostPerPeriod={driverFixedCosts.weekly}
+                            />
+                        )}
+
+                        {/* Filters */}
+                        <div className="p-4 space-y-4 border-b bg-accent">
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                    {isLoading
+                                        ? 'Loading matches...'
+                                        : `${visibleTrips.length} of ${tripData.length} Matches`}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">Sort By:</span>
+                                    <Select value={sortBy} onValueChange={setSortBy}>
+                                        <SelectTrigger className="w-[160px] h-8 border-none bg-transparent p-0">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="new">New</SelectItem>
+                                            <SelectItem value="pickup-date">
+                                                Pick-up date
+                                            </SelectItem>
+                                            <SelectItem value="distance">Distance</SelectItem>
+                                            <SelectItem value="loaded-rpm">Loaded RPM</SelectItem>
+                                            <SelectItem value="total-rpm">Est Total RPM</SelectItem>
+                                            <SelectItem value="rate">Rate</SelectItem>
+                                            <SelectItem value="distance-to-origin">
+                                                Distance to Origin
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span>Confirmed Appointments Only</span>
+                                    <Switch
+                                        checked={filters.confirmedOnly}
+                                        onCheckedChange={(checked) =>
+                                            onFiltersChange({
+                                                ...filters,
+                                                confirmedOnly: checked === true,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span>Standard Network Only</span>
+                                    <Switch
+                                        checked={filters.standardNetworkOnly}
+                                        onCheckedChange={(checked) =>
+                                            onFiltersChange({
+                                                ...filters,
+                                                standardNetworkOnly: checked === true,
+                                            })
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            {filterChips.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                    {filterChips.map((chip) => (
+                                        <span
+                                            key={chip}
+                                            className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full"
+                                        >
+                                            {chip}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Trip Cards */}
+                        <div className="p-4 space-y-4 min-h-[50vh]">
+                            {isLoading ? (
+                                <div className="text-sm text-muted-foreground">
+                                    Loading loads based on your filters...
+                                </div>
+                            ) : error ? (
+                                <div className="text-sm text-red-600">{error}</div>
+                            ) : visibleTrips.length > 0 ? (
+                                visibleTrips.map((trip) => (
+                                    <SwipeableTripCard
+                                        key={trip.id}
+                                        trip={trip}
+                                        customMetrics={customMetrics}
+                                        onDislike={handleDislike}
+                                        onUndoDislike={handleUndoDislike}
+                                        profitabilitySettings={profitabilitySettings}
+                                        onSelect={() => handleTripSelect(trip)}
+                                    />
+                                ))
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="text-muted-foreground mb-4">
+                                        <Eye className="w-16 h-16 mx-auto mb-4" />
+                                    </div>
+                                    <h3 className="text-lg text-foreground mb-2">
+                                        No more trips to show
+                                    </h3>
+                                    <p className="text-muted-foreground text-sm mb-6">
+                                        You've dismissed all available trips. Check back later for
+                                        new loads.
+                                    </p>
+                                    <button
+                                        onClick={() => setDislikedTrips([])}
+                                        className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                                    >
+                                        <RotateCcw className="w-4 h-4 inline mr-2" />
+                                        Show All Trips Again
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Instructions */}
+                        {!isLoading && !error && visibleTrips.length > 0 && (
+                            <div className="p-4 text-center text-muted-foreground text-sm">
+                                Swipe left to dislike a trip
+                            </div>
+                        )}
+
+                        {/* Advanced Filters Dialog */}
+                        <AdvancedFiltersDialog
+                            open={showAdvancedFilters}
+                            onOpenChange={setShowAdvancedFilters}
+                            value={{
+                                minLoadedRpm: filters.minLoadedRpm,
+                                minRcpm: filters.minRcpm,
+                                minDistance: filters.minDistance,
+                                maxDistance: filters.maxDistance,
+                                serviceExclusions: filters.serviceExclusions,
+                            }}
+                            onApply={(values) => {
+                                handleAdvancedApply(values);
+                                setShowAdvancedFilters(false);
+                            }}
+                        />
+
+                        {/* Bottom Spacer to ensure navigation is always visible */}
+                        <div className="pb-8"></div>
+                    </>
                 )}
             </div>
-
-            {/* Instructions */}
-            {!isLoading && !error && visibleTrips.length > 0 && (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                    Swipe left to dislike a trip
-                </div>
-            )}
-
-            {/* Advanced Filters Dialog */}
-            <AdvancedFiltersDialog
-                open={showAdvancedFilters}
-                onOpenChange={setShowAdvancedFilters}
-                value={{
-                    minLoadedRpm: filters.minLoadedRpm,
-                    minRcpm: filters.minRcpm,
-                    minDistance: filters.minDistance,
-                    maxDistance: filters.maxDistance,
-                    serviceExclusions: filters.serviceExclusions,
-                }}
-                onApply={(values) => {
-                    handleAdvancedApply(values);
-                    setShowAdvancedFilters(false);
-                }}
-            />
-
-            {/* Bottom Spacer to ensure navigation is always visible */}
-            <div className="pb-8"></div>
         </div>
     );
 }

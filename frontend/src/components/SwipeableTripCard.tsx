@@ -41,6 +41,7 @@ interface SwipeableTripCardProps {
     onDislike: (tripId: string) => void;
     onUndoDislike: (tripId: string) => void;
     profitabilitySettings: ProfitabilitySettings;
+    onSelect?: (trip: Trip) => void;
 }
 
 export function SwipeableTripCard({
@@ -49,6 +50,7 @@ export function SwipeableTripCard({
     onDislike,
     onUndoDislike,
     profitabilitySettings,
+    onSelect,
 }: SwipeableTripCardProps) {
     const currencyFormatter = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -246,6 +248,7 @@ export function SwipeableTripCard({
                 onDrag={handleDrag}
                 onDragEnd={handleDragEnd}
                 animate={getCardTransform()}
+                onTap={() => onSelect?.(trip)}
                 className="bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10"
                 style={{ touchAction: 'pan-x' }}
             >
