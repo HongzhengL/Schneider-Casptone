@@ -1,23 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, Truck } from 'lucide-react';
 import { Button } from './ui/button';
-import { DowntimeCostReminder } from './DowntimeCostReminder';
+import { FixedCoverageInsight } from './FixedCoverageInsight';
 import { fetchSuggestedLoads, ApiError } from '../services/api';
 import type { SuggestedLoad } from '../types/api';
+import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
+import { calculateDriverFixedCosts, calculateDriverRollingCpm } from '../utils/profitability';
 
 interface HomePageProps {
     onNavigate: (page: string) => void;
+    profitabilitySettings?: ProfitabilitySettings;
 }
 
-export function HomePage({ onNavigate }: HomePageProps) {
+export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Placeholder for fixed cost per day; in a real application this value would be
-    // provided by user settings or fetched from a backend API. It represents
-    // the daily fixed cost used to calculate downtime expenses.
-    const FIXED_COST_PER_DAY = 150;
+    const driverFixedCosts = useMemo(() => {
+        if (!profitabilitySettings) return { weekly: 2771.36, daily: 400, monthly: 12000 };
+        return calculateDriverFixedCosts(profitabilitySettings);
+    }, [profitabilitySettings]);
+
+    const driverRollingCpm = useMemo(() => {
+        if (!profitabilitySettings) return 1.2;
+        return calculateDriverRollingCpm(profitabilitySettings);
+    }, [profitabilitySettings]);
 
     useEffect(() => {
         let isMounted = true;
@@ -68,8 +76,16 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
                 <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-                <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
             </div>
+
+            {/* Fixed Coverage Insight */}
+            <FixedCoverageInsight
+                fixedCostPerPeriod={driverFixedCosts.weekly}
+                dailyFixedCost={driverFixedCosts.daily}
+                rollingCostPerMile={driverRollingCpm}
+                onAdjust={() => onNavigate('profitability-settings')}
+                coveredAmount={1650.00} // Mocked for now as requested
+            />
 
             {/* Quick Action Section */}
             <div className="space-y-4">

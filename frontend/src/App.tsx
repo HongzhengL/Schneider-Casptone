@@ -208,7 +208,12 @@ export default function App() {
     const renderCurrentPage = () => {
         switch (currentPage) {
             case 'home':
-                return <HomePage onNavigate={setCurrentPage} />;
+                return (
+                    <HomePage
+                        onNavigate={setCurrentPage}
+                        profitabilitySettings={profitabilitySettings}
+                    />
+                );
             case 'notice':
                 return <NoticePage onNavigate={setCurrentPage} />;
             case 'search':

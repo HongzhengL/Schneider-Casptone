@@ -5,11 +5,10 @@ import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { SwipeableTripCard } from './SwipeableTripCard';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
-import { FixedCoverageInsight } from './FixedCoverageInsight';
+
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
-import { calculateDriverFixedCosts, calculateDriverRollingCpm } from '../utils/profitability';
 
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
@@ -235,26 +234,16 @@ export function FindLoadsResultsPage({
                 <button
                     onClick={() => setShowAdvancedFilters(true)}
                     className="text-primary hover:opacity-90"
-                    aria-label={`Advanced filters${
-                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                    }`}
-                    title={`Advanced filters${
-                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                    }`}
+                    aria-label={`Advanced filters${advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                        }`}
+                    title={`Advanced filters${advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                        }`}
                 >
                     <SlidersHorizontal className="w-6 h-6" />
                 </button>
             </div>
 
-            {/* Fixed Coverage Insight */}
-            {!isLoading && !error && (
-                <FixedCoverageInsight
-                    trips={visibleTrips}
-                    periodType="week"
-                    rollingCostPerMile={driverRollingCpm}
-                    fixedCostPerPeriod={driverFixedCosts.weekly}
-                />
-            )}
+
 
             {/* Filters */}
             <div className="p-4 space-y-4 border-b bg-accent">
