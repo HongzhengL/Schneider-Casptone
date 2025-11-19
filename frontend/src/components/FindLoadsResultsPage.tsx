@@ -132,15 +132,6 @@ export function FindLoadsResultsPage({
 
     const visibleTrips = getSortedTrips();
 
-    const driverRollingCpm = useMemo(
-        () => calculateDriverRollingCpm(profitabilitySettings),
-        [profitabilitySettings]
-    );
-    const driverFixedCosts = useMemo(
-        () => calculateDriverFixedCosts(profitabilitySettings),
-        [profitabilitySettings]
-    );
-
     const filterChips = useMemo(() => {
         const chips: string[] = [];
         if (filters.minLoadedRpm != null) {
@@ -234,16 +225,16 @@ export function FindLoadsResultsPage({
                 <button
                     onClick={() => setShowAdvancedFilters(true)}
                     className="text-primary hover:opacity-90"
-                    aria-label={`Advanced filters${advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                        }`}
-                    title={`Advanced filters${advancedFilterCount ? ` (${advancedFilterCount})` : ''
-                        }`}
+                    aria-label={`Advanced filters${
+                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                    }`}
+                    title={`Advanced filters${
+                        advancedFilterCount ? ` (${advancedFilterCount})` : ''
+                    }`}
                 >
                     <SlidersHorizontal className="w-6 h-6" />
                 </button>
             </div>
-
-
 
             {/* Filters */}
             <div className="p-4 space-y-4 border-b bg-accent">

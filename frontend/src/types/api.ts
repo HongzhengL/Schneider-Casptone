@@ -226,3 +226,11 @@ export interface LeaderboardEntry {
     totalMiles: number;
     totalDeliveries: number;
 }
+
+export interface CoverageResponse {
+    coveredAmount: number;
+    startOfWeek: string;
+    endOfWeek: string;
+    runCount: number;
+    referenceDate: string;
+}

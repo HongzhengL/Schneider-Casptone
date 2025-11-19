@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bell, Truck } from 'lucide-react';
 import { Button } from './ui/button';
 import { FixedCoverageInsight } from './FixedCoverageInsight';
-import { fetchSuggestedLoads, ApiError } from '../services/api';
-import type { SuggestedLoad } from '../types/api';
+import { fetchSuggestedLoads, fetchCoverage, ApiError } from '../services/api';
+import type { CoverageResponse, SuggestedLoad } from '../types/api';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
-import { calculateDriverFixedCosts, calculateDriverRollingCpm } from '../utils/profitability';
+import { calculateDriverFixedCosts } from '../utils/profitability';
 
 interface HomePageProps {
     onNavigate: (page: string) => void;
@@ -14,17 +14,14 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
+    const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
+    const [coverageError, setCoverageError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const driverFixedCosts = useMemo(() => {
         if (!profitabilitySettings) return { weekly: 2771.36, daily: 400, monthly: 12000 };
         return calculateDriverFixedCosts(profitabilitySettings);
-    }, [profitabilitySettings]);
-
-    const driverRollingCpm = useMemo(() => {
-        if (!profitabilitySettings) return 1.2;
-        return calculateDriverRollingCpm(profitabilitySettings);
     }, [profitabilitySettings]);
 
     useEffect(() => {
@@ -41,8 +38,8 @@ export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
                 console.error(err);
                 setError(
                     err instanceof ApiError
-                        ? 'Unable to load suggested assignments.'
-                        : 'Something went wrong while loading assignments.'
+                        ? 'Unable to load dashboard data.'
+                        : 'Something went wrong while loading dashboard data.'
                 );
             } finally {
                 if (isMounted) {
@@ -51,7 +48,25 @@ export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
             }
         };
 
+        const loadCoverage = async () => {
+            try {
+                const response = await fetchCoverage();
+                if (!isMounted) return;
+                setCoverage(response);
+                setCoverageError(null);
+            } catch (err) {
+                if (!isMounted) return;
+                console.error(err);
+                setCoverageError(
+                    err instanceof ApiError
+                        ? 'Unable to load coverage summary.'
+                        : 'Something went wrong while loading coverage data.'
+                );
+            }
+        };
+
         loadSuggested();
+        loadCoverage();
 
         return () => {
             isMounted = false;
@@ -82,9 +97,13 @@ export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
             <FixedCoverageInsight
                 fixedCostPerPeriod={driverFixedCosts.weekly}
                 dailyFixedCost={driverFixedCosts.daily}
-                rollingCostPerMile={driverRollingCpm}
+                coveredAmount={coverage?.coveredAmount ?? 0}
+                periodStart={coverage?.startOfWeek}
+                periodEnd={coverage?.endOfWeek}
+                runCount={coverage?.runCount}
+                coverageError={coverageError}
                 onAdjust={() => onNavigate('profitability-settings')}
-                coveredAmount={1650.00} // Mocked for now as requested
+                onLeaderboard={() => onNavigate('leaderboard')}
             />
 
             {/* Quick Action Section */}
@@ -118,15 +137,6 @@ export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
                         className="border-border text-foreground hover:bg-accent text-sm"
                     >
                         Fuel Network
-                    </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <Button
-                        variant="outline"
-                        className="border-primary/50 text-primary hover:bg-accent"
-                        onClick={() => onNavigate('leaderboard')}
-                    >
-                        Leaderboard
                     </Button>
                 </div>
             </div>
