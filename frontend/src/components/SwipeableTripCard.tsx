@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, PanInfo } from 'motion/react';
-import { Eye, RotateCcw, X, TrendingUp, TrendingDown, Check } from 'lucide-react';
+import { Eye, RotateCcw, X, TrendingUp, TrendingDown, Check, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
 import { calculateDriverRollingCpm, calculateMarginThreshold } from '../utils/profitability';
@@ -42,6 +42,7 @@ interface SwipeableTripCardProps {
     onUndoDislike: (tripId: string) => void;
     onCompare?: (tripId: string) => void;
     profitabilitySettings: ProfitabilitySettings;
+    isCompared?: boolean;
 }
 
 export function SwipeableTripCard({
@@ -51,6 +52,7 @@ export function SwipeableTripCard({
     onUndoDislike,
     onCompare,
     profitabilitySettings,
+    isCompared = false,
 }: SwipeableTripCardProps) {
     const currencyFormatter = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -98,9 +100,12 @@ export function SwipeableTripCard({
         }
         // If swiped right more than 150px, trigger compare
         else if (info.offset.x > 150 && onCompare) {
-            onCompare(trip.id);
+            if (isCompared) {
+                toast.info(`Load already in comparison list`);
+                return;
+            }
 
-            // Show toast notification
+            onCompare(trip.id);
             toast.success(`Load added to compare`, {
                 duration: 3000,
             });
@@ -247,11 +252,19 @@ export function SwipeableTripCard({
             )}
             {/* Background Action Area - Revealed when swiping right (compare) */}
             {isDragging && dragX > 0 && (
-                <div className="absolute inset-0 bg-green-500 flex items-center justify-start px-6 rounded-lg z-0">
+                <div
+                    className={`absolute inset-0 ${isCompared ? 'bg-gray-500' : 'bg-green-500'} flex items-center justify-start px-6 rounded-lg z-0`}
+                >
                     <div className="flex items-center text-white">
                         <div className="flex flex-col items-center gap-1">
-                            <Check className="w-8 h-8" />
-                            <span className="text-sm font-medium">Compare</span>
+                            {isCompared ? (
+                                <ClipboardList className="w-8 h-8" />
+                            ) : (
+                                <Check className="w-8 h-8" />
+                            )}
+                            <span className="text-sm font-medium">
+                                {isCompared ? 'Already Added' : 'Compare'}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -268,9 +281,15 @@ export function SwipeableTripCard({
                 onDrag={handleDrag}
                 onDragEnd={handleDragEnd}
                 animate={getCardTransform()}
-                className="bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10"
+                className={`bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10 ${isCompared ? 'border-green-500 ring-1 ring-green-500' : ''}`}
                 style={{ touchAction: 'pan-x' }}
             >
+                {isCompared && (
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg z-20 font-medium flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Added
+                    </div>
+                )}
                 <div className="p-4">
                     <div className="flex gap-4">
                         {/* Left Side - Price and Custom Metrics */}

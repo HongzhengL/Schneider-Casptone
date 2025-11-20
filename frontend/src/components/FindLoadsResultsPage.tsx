@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, SlidersHorizontal, Eye, RotateCcw } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, SlidersHorizontal, Eye, RotateCcw, ClipboardList } from 'lucide-react';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { SwipeableTripCard } from './SwipeableTripCard';
 import { AdvancedFiltersDialog } from './AdvancedFiltersDialog';
+import { ComparisonDrawer } from './ComparisonDrawer';
 
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
@@ -49,6 +51,7 @@ export function FindLoadsResultsPage({
     const [dislikedTrips, setDislikedTrips] = useState<string[]>([]);
     const [comparedTrips, setComparedTrips] = useState<string[]>([]);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [showComparison, setShowComparison] = useState(false);
     const [sortBy, setSortBy] = useState('new');
 
     useEffect(() => {
@@ -101,10 +104,16 @@ export function FindLoadsResultsPage({
         setComparedTrips((prev) => [...prev, tripId]);
     };
 
+    const comparedTripObjects = useMemo(() => {
+        return tripData.filter((trip) => comparedTrips.includes(trip.id));
+    }, [tripData, comparedTrips]);
+
+    const handleRemoveComparedTrip = (tripId: string) => {
+        setComparedTrips((prev) => prev.filter((id) => id !== tripId));
+    };
+
     const getSortedTrips = () => {
-        const filtered = tripData.filter(
-            (trip) => !dislikedTrips.includes(trip.id) && !comparedTrips.includes(trip.id)
-        );
+        const filtered = tripData.filter((trip) => !dislikedTrips.includes(trip.id));
 
         const sorted = [...filtered].sort((a, b) => {
             switch (sortBy) {
@@ -324,6 +333,7 @@ export function FindLoadsResultsPage({
                             onUndoDislike={handleUndoDislike}
                             onCompare={handleCompare}
                             profitabilitySettings={profitabilitySettings}
+                            isCompared={comparedTrips.includes(trip.id)}
                         />
                     ))
                 ) : (
@@ -370,8 +380,38 @@ export function FindLoadsResultsPage({
                 }}
             />
 
+            {/* Comparison Panel */}
+            <ComparisonDrawer
+                open={showComparison}
+                onOpenChange={setShowComparison}
+                trips={comparedTripObjects}
+                onRemoveTrip={handleRemoveComparedTrip}
+                profitabilitySettings={profitabilitySettings}
+            />
+
+            {/* Floating Comparison Button */}
+            {comparedTrips.length > 0 &&
+                createPortal(
+                    <div
+                        className="fixed left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 pointer-events-none flex justify-end z-50"
+                        style={{ bottom: '6rem' }}
+                    >
+                        <Button
+                            onClick={() => setShowComparison(true)}
+                            className="rounded-full shadow-lg h-12 px-6 bg-green-500 text-white flex items-center gap-2"
+                            style={{ pointerEvents: 'auto' }}
+                        >
+                            <ClipboardList className="w-5 h-5" />
+                            <span className="font-bold text-lg">
+                                Compare ({comparedTrips.length})
+                            </span>
+                        </Button>
+                    </div>,
+                    document.body
+                )}
+
             {/* Bottom Spacer to ensure navigation is always visible */}
-            <div className="pb-8"></div>
+            <div className="pb-20"></div>
         </div>
     );
 }
