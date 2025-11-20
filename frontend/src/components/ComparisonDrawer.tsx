@@ -65,7 +65,11 @@ export function ComparisonDrawer({
                     ? `+$${netProfit.toFixed(2)}`
                     : `-$${Math.abs(netProfit).toFixed(2)}`,
             color:
-                netProfit > 0 ? 'text-green-600' : netProfit < 0 ? 'text-red-600' : 'text-orange-500',
+                netProfit > 0
+                    ? 'text-green-600'
+                    : netProfit < 0
+                      ? 'text-red-600'
+                      : 'text-orange-500',
         };
     };
 
@@ -107,407 +111,415 @@ export function ComparisonDrawer({
                             </button>
                         </div>
 
-                {/* Scrollable Comparison Table */}
-                <div className="flex-1" style={{ overflowY: 'auto' }}>
-                    <div
-                        className="w-full"
-                        style={{
-                            overflowX: 'auto',
-                            WebkitOverflowScrolling: 'touch',
-                        }}
-                    >
-                        <table
-                            className="w-full text-sm border-collapse"
-                            style={{ minWidth: `${tableMinWidth}px` }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th
-                                        className="text-left p-3 border-b font-semibold text-gray-700 bg-gray-50 whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            top: 0,
-                                            left: 0,
-                                            zIndex: 6,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Metric
-                                    </th>
-                                    {loads.map((load) => (
-                                        <th
-                                            key={load.id}
-                                            className="p-3 border-b border-l bg-gray-50"
-                                            style={{
-                                                position: 'sticky',
-                                                top: 0,
-                                                zIndex: 5,
-                                                minWidth: `${loadColumnWidth}px`,
-                                            }}
-                                        >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="text-left">
-                                                    <div className="font-semibold text-gray-900 text-xs overflow-hidden whitespace-nowrap">
-                                                        {load.fromLocation.split(',')[0]}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 overflow-hidden whitespace-nowrap">
-                                                        → {load.toLocation.split(',')[0]}
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => onRemoveTrip(load.id)}
-                                                    className="text-gray-400 hover:text-red-500 flex-shrink-0"
-                                                    title="Remove from comparison"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* Gross Revenue */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Gross Revenue
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center font-semibold text-lg"
-                                        >
-                                            {load.price}
-                                        </td>
-                                    ))}
-                                </tr>
-
-                                {/* Net Profit */}
-                                {rcpm && (
-                                    <tr className="hover:bg-gray-50">
-                                        <td
-                                            className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                            style={{
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 5,
-                                                minWidth: `${metricColumnWidth}px`,
-                                                boxShadow: stickyShadow,
-                                            }}
-                                        >
-                                            Net Profit
-                                        </td>
-                                        {loads.map((load) => {
-                                            const netProfit = getNetProfit(load);
-                                            return (
-                                                <td
-                                                    key={load.id}
-                                                    className="p-3 border-b border-l text-center"
-                                                >
-                                                    {netProfit ? (
-                                                        <span
-                                                            className={`font-semibold ${netProfit.color}`}
-                                                        >
-                                                            {netProfit.formatted}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-400">N/A</span>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                )}
-
-                                {/* Profit Margin per Mile */}
-                                {rcpm && (
-                                    <tr className="hover:bg-gray-50">
-                                        <td
-                                            className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                            style={{
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 5,
-                                                minWidth: `${metricColumnWidth}px`,
-                                                boxShadow: stickyShadow,
-                                            }}
-                                        >
-                                            Margin per Mile
-                                        </td>
-                                        {loads.map((load) => {
-                                            const indicator = getProfitabilityIndicator(load);
-                                            return (
-                                                <td
-                                                    key={load.id}
-                                                    className="p-3 border-b border-l text-center"
-                                                >
-                                                    {indicator ? (
-                                                        <span
-                                                            className={`inline-flex items-center justify-center gap-1 ${indicator.color}`}
-                                                        >
-                                                            <indicator.icon className="w-4 h-4" />
-                                                            <span className="font-medium">
-                                                                {indicator.text}/mi
-                                                            </span>
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-400">N/A</span>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                )}
-
-                                {/* Distance */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Distance
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center"
-                                        >
-                                            {load.distance}
-                                        </td>
-                                    ))}
-                                </tr>
-
-                                {/* Loaded RPM */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Loaded RPM
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center text-orange-600 font-medium"
-                                        >
-                                            {load.loadedRpm}
-                                        </td>
-                                    ))}
-                                </tr>
-
-                                {/* Total RPM */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Est Total RPM
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center text-orange-600 font-medium"
-                                        >
-                                            {load.totalRpm}
-                                        </td>
-                                    ))}
-                                </tr>
-
-                                {/* RCPM */}
-                                {rcpm && (
-                                    <tr className="hover:bg-gray-50">
-                                        <td
-                                            className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                            style={{
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 5,
-                                                minWidth: `${metricColumnWidth}px`,
-                                                boxShadow: stickyShadow,
-                                            }}
-                                        >
-                                            Your RCPM
-                                        </td>
-                                        {loads.map((load) => (
-                                            <td
-                                                key={load.id}
-                                                className="p-3 border-b border-l text-center text-gray-600 font-medium"
+                        {/* Scrollable Comparison Table */}
+                        <div className="flex-1" style={{ overflowY: 'auto' }}>
+                            <div
+                                className="w-full"
+                                style={{
+                                    overflowX: 'auto',
+                                    WebkitOverflowScrolling: 'touch',
+                                }}
+                            >
+                                <table
+                                    className="w-full text-sm border-collapse"
+                                    style={{ minWidth: `${tableMinWidth}px` }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th
+                                                className="text-left p-3 border-b font-semibold text-gray-700 bg-gray-50 whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    top: 0,
+                                                    left: 0,
+                                                    zIndex: 6,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
                                             >
-                                                ${rcpm.toFixed(2)}
+                                                Metric
+                                            </th>
+                                            {loads.map((load) => (
+                                                <th
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l bg-gray-50"
+                                                    style={{
+                                                        position: 'sticky',
+                                                        top: 0,
+                                                        zIndex: 5,
+                                                        minWidth: `${loadColumnWidth}px`,
+                                                    }}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="text-left">
+                                                            <div className="font-semibold text-gray-900 text-xs overflow-hidden whitespace-nowrap">
+                                                                {load.fromLocation.split(',')[0]}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 overflow-hidden whitespace-nowrap">
+                                                                → {load.toLocation.split(',')[0]}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => onRemoveTrip(load.id)}
+                                                            className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                                                            title="Remove from comparison"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {/* Gross Revenue */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Gross Revenue
                                             </td>
-                                        ))}
-                                    </tr>
-                                )}
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center font-semibold text-lg"
+                                                >
+                                                    {load.price}
+                                                </td>
+                                            ))}
+                                        </tr>
 
-                                {/* Weight */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Weight
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center"
-                                        >
-                                            {load.weight}
-                                        </td>
-                                    ))}
-                                </tr>
+                                        {/* Net Profit */}
+                                        {rcpm && (
+                                            <tr className="hover:bg-gray-50">
+                                                <td
+                                                    className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                    style={{
+                                                        position: 'sticky',
+                                                        left: 0,
+                                                        zIndex: 5,
+                                                        minWidth: `${metricColumnWidth}px`,
+                                                        boxShadow: stickyShadow,
+                                                    }}
+                                                >
+                                                    Net Profit
+                                                </td>
+                                                {loads.map((load) => {
+                                                    const netProfit = getNetProfit(load);
+                                                    return (
+                                                        <td
+                                                            key={load.id}
+                                                            className="p-3 border-b border-l text-center"
+                                                        >
+                                                            {netProfit ? (
+                                                                <span
+                                                                    className={`font-semibold ${netProfit.color}`}
+                                                                >
+                                                                    {netProfit.formatted}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">
+                                                                    N/A
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        )}
 
-                                {/* Load Type */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Load Type
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center text-sm"
-                                        >
-                                            {load.loadType}
-                                        </td>
-                                    ))}
-                                </tr>
+                                        {/* Profit Margin per Mile */}
+                                        {rcpm && (
+                                            <tr className="hover:bg-gray-50">
+                                                <td
+                                                    className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                    style={{
+                                                        position: 'sticky',
+                                                        left: 0,
+                                                        zIndex: 5,
+                                                        minWidth: `${metricColumnWidth}px`,
+                                                        boxShadow: stickyShadow,
+                                                    }}
+                                                >
+                                                    Margin per Mile
+                                                </td>
+                                                {loads.map((load) => {
+                                                    const indicator =
+                                                        getProfitabilityIndicator(load);
+                                                    return (
+                                                        <td
+                                                            key={load.id}
+                                                            className="p-3 border-b border-l text-center"
+                                                        >
+                                                            {indicator ? (
+                                                                <span
+                                                                    className={`inline-flex items-center justify-center gap-1 ${indicator.color}`}
+                                                                >
+                                                                    <indicator.icon className="w-4 h-4" />
+                                                                    <span className="font-medium">
+                                                                        {indicator.text}/mi
+                                                                    </span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">
+                                                                    N/A
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        )}
 
-                                {/* Pickup Date */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Pickup Date
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center text-sm"
-                                        >
-                                            {new Date(load.fromDate).toLocaleString('en-US', {
-                                                weekday: 'short',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                            })}
-                                        </td>
-                                    ))}
-                                </tr>
+                                        {/* Distance */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Distance
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center"
+                                                >
+                                                    {load.distance}
+                                                </td>
+                                            ))}
+                                        </tr>
 
-                                {/* Delivery Date */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Delivery Date
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center text-sm"
-                                        >
-                                            {new Date(load.toDate).toLocaleString('en-US', {
-                                                weekday: 'short',
-                                                month: 'short',
-                                                day: 'numeric',
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                            })}
-                                        </td>
-                                    ))}
-                                </tr>
+                                        {/* Loaded RPM */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Loaded RPM
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center text-orange-600 font-medium"
+                                                >
+                                                    {load.loadedRpm}
+                                                </td>
+                                            ))}
+                                        </tr>
 
-                                {/* Reload */}
-                                <tr className="hover:bg-gray-50">
-                                    <td
-                                        className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
-                                        style={{
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 5,
-                                            minWidth: `${metricColumnWidth}px`,
-                                            boxShadow: stickyShadow,
-                                        }}
-                                    >
-                                        Has Reload
-                                    </td>
-                                    {loads.map((load) => (
-                                        <td
-                                            key={load.id}
-                                            className="p-3 border-b border-l text-center"
-                                        >
-                                            {load.hasReload ? (
-                                                <span className="text-green-600 font-medium">
-                                                    Yes
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-400">No</span>
-                                            )}
-                                        </td>
-                                    ))}
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                        {/* Total RPM */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Est Total RPM
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center text-orange-600 font-medium"
+                                                >
+                                                    {load.totalRpm}
+                                                </td>
+                                            ))}
+                                        </tr>
+
+                                        {/* RCPM */}
+                                        {rcpm && (
+                                            <tr className="hover:bg-gray-50">
+                                                <td
+                                                    className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                    style={{
+                                                        position: 'sticky',
+                                                        left: 0,
+                                                        zIndex: 5,
+                                                        minWidth: `${metricColumnWidth}px`,
+                                                        boxShadow: stickyShadow,
+                                                    }}
+                                                >
+                                                    Your RCPM
+                                                </td>
+                                                {loads.map((load) => (
+                                                    <td
+                                                        key={load.id}
+                                                        className="p-3 border-b border-l text-center text-gray-600 font-medium"
+                                                    >
+                                                        ${rcpm.toFixed(2)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        )}
+
+                                        {/* Weight */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Weight
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center"
+                                                >
+                                                    {load.weight}
+                                                </td>
+                                            ))}
+                                        </tr>
+
+                                        {/* Load Type */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Load Type
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center text-sm"
+                                                >
+                                                    {load.loadType}
+                                                </td>
+                                            ))}
+                                        </tr>
+
+                                        {/* Pickup Date */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Pickup Date
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center text-sm"
+                                                >
+                                                    {new Date(load.fromDate).toLocaleString(
+                                                        'en-US',
+                                                        {
+                                                            weekday: 'short',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: 'numeric',
+                                                            minute: '2-digit',
+                                                        }
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+
+                                        {/* Delivery Date */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Delivery Date
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center text-sm"
+                                                >
+                                                    {new Date(load.toDate).toLocaleString('en-US', {
+                                                        weekday: 'short',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                    })}
+                                                </td>
+                                            ))}
+                                        </tr>
+
+                                        {/* Reload */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Has Reload
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center"
+                                                >
+                                                    {load.hasReload ? (
+                                                        <span className="text-green-600 font-medium">
+                                                            Yes
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">No</span>
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </motion.div>
                 </motion.div>
             )}
