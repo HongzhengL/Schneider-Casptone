@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import {
-    ChevronLeft,
     GripVertical,
     Save,
     Bell,
@@ -10,6 +9,7 @@ import {
     Truck,
     Settings,
     Volume2,
+    ChevronRight,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Slider } from './ui/slider';
 import { Reorder } from 'motion/react';
+import { toast } from 'sonner';
 
 interface Metric {
     id: string;
@@ -37,10 +38,11 @@ export function SettingsPage({
     customMetrics,
     defaultMetrics,
     setCustomMetrics,
-    onNavigate,
+    onNavigate: _onNavigate,
     isLoadingDefaults,
     loadError,
 }: SettingsPageProps) {
+    const [activeSection, setActiveSection] = useState<string | null>(null);
     const [localMetrics, setLocalMetrics] = useState(customMetrics);
 
     useEffect(() => {
@@ -65,6 +67,43 @@ export function SettingsPage({
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
+    const [equipmentType, setEquipmentType] = useState('dry-van-53');
+
+    useEffect(() => {
+        const savedSettings = localStorage.getItem('schneider_settings');
+        if (savedSettings) {
+            try {
+                const parsed = JSON.parse(savedSettings);
+                if (parsed.notifications) setNotifications(parsed.notifications);
+                if (parsed.autoLocation !== undefined) setAutoLocation(parsed.autoLocation);
+                if (parsed.distanceUnit) setDistanceUnit(parsed.distanceUnit);
+                if (parsed.defaultRadius) setDefaultRadius(parsed.defaultRadius);
+                if (parsed.soundEnabled !== undefined) setSoundEnabled(parsed.soundEnabled);
+                if (parsed.vibrationEnabled !== undefined)
+                    setVibrationEnabled(parsed.vibrationEnabled);
+                if (parsed.equipmentType) setEquipmentType(parsed.equipmentType);
+            } catch (e) {
+                console.error('Failed to parse settings from localStorage', e);
+            }
+        }
+    }, []);
+
+    const persistSettings = (metricsToPersist: Metric[]) => {
+        setCustomMetrics(metricsToPersist);
+
+        const settingsToSave = {
+            metrics: metricsToPersist,
+            notifications,
+            autoLocation,
+            distanceUnit,
+            defaultRadius,
+            soundEnabled,
+            vibrationEnabled,
+            equipmentType,
+        };
+        localStorage.setItem('schneider_settings', JSON.stringify(settingsToSave));
+    };
+
     const handleToggleMetric = (metricId: string) => {
         setLocalMetrics((prev) =>
             prev.map((metric) =>
@@ -74,28 +113,46 @@ export function SettingsPage({
     };
 
     const handleSave = () => {
-        setCustomMetrics(localMetrics);
-        onNavigate('results');
+        persistSettings(localMetrics);
+        setActiveSection(null);
+        toast.success('Settings saved successfully');
     };
 
     const handleReset = () => {
-        setLocalMetrics(cloneMetrics(defaultMetrics));
+        const resetMetrics = cloneMetrics(defaultMetrics);
+        setLocalMetrics(resetMetrics);
+        persistSettings(resetMetrics);
+        toast.success('Metrics reset to default');
     };
 
-    return (
-        <div className="p-4 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <ChevronLeft
-                        className="w-6 h-6 cursor-pointer"
-                        onClick={() => onNavigate('results')}
-                    />
-                    <h1 className="text-xl">Trip Card Settings</h1>
-                </div>
-            </div>
+    const handleResetAll = () => {
+        // Reset Metrics
+        const resetMetrics = cloneMetrics(defaultMetrics);
+        setLocalMetrics(resetMetrics);
+        setCustomMetrics(resetMetrics);
 
-            {/* Description */}
+        // Reset other settings to defaults
+        setNotifications({
+            newLoads: true,
+            rateUpdates: true,
+            systemAlerts: true,
+            promotions: false,
+        });
+        setAutoLocation(true);
+        setDistanceUnit('miles');
+        setDefaultRadius([250]);
+        setSoundEnabled(true);
+        setVibrationEnabled(true);
+        setEquipmentType('dry-van-53');
+
+        // Clear storage to revert to system defaults
+        localStorage.removeItem('schneider_settings');
+
+        toast.success('All settings reset to defaults');
+    };
+
+    const renderMetricsSettings = () => (
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Customize Trip Card Metrics</CardTitle>
@@ -108,7 +165,6 @@ export function SettingsPage({
                 </CardContent>
             </Card>
 
-            {/* Metrics List */}
             <Card>
                 <CardHeader>
                     <CardTitle>Available Metrics</CardTitle>
@@ -220,7 +276,6 @@ export function SettingsPage({
                 </CardContent>
             </Card>
 
-            {/* Preview */}
             <Card>
                 <CardHeader>
                     <CardTitle>Preview</CardTitle>
@@ -286,7 +341,23 @@ export function SettingsPage({
                 </CardContent>
             </Card>
 
-            {/* Notification Settings */}
+            <div className="grid grid-cols-2 gap-3">
+                <Button
+                    onClick={handleSave}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                </Button>
+                <Button onClick={handleReset} variant="outline" className="border-gray-300">
+                    Reset Metrics
+                </Button>
+            </div>
+        </div>
+    );
+
+    const renderNotificationSettings = () => (
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -356,8 +427,20 @@ export function SettingsPage({
                     </div>
                 </CardContent>
             </Card>
+            <div className="pt-4">
+                <Button
+                    onClick={handleSave}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                </Button>
+            </div>
+        </div>
+    );
 
-            {/* App Preferences */}
+    const renderAppPreferences = () => (
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -417,8 +500,20 @@ export function SettingsPage({
                     </div>
                 </CardContent>
             </Card>
+            <div className="pt-4">
+                <Button
+                    onClick={handleSave}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                </Button>
+            </div>
+        </div>
+    );
 
-            {/* Sound & Feedback */}
+    const renderSoundSettings = () => (
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -448,8 +543,20 @@ export function SettingsPage({
                     </div>
                 </CardContent>
             </Card>
+            <div className="pt-4">
+                <Button
+                    onClick={handleSave}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                </Button>
+            </div>
+        </div>
+    );
 
-            {/* Driver Preferences */}
+    const renderDriverPreferences = () => (
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -472,7 +579,7 @@ export function SettingsPage({
 
                     <div className="space-y-3">
                         <label className="font-medium">Equipment Type</label>
-                        <Select defaultValue="dry-van-53">
+                        <Select value={equipmentType} onValueChange={setEquipmentType}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -486,28 +593,121 @@ export function SettingsPage({
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Actions */}
-            <div className="space-y-3">
+            <div className="pt-4">
                 <Button
                     onClick={handleSave}
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 >
                     <Save className="w-4 h-4 mr-2" />
-                    Save All Settings
+                    Save Changes
                 </Button>
+            </div>
+        </div>
+    );
 
-                <div className="grid grid-cols-2 gap-3">
-                    <Button onClick={handleReset} variant="outline" className="border-gray-300">
-                        Reset Metrics
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                    >
-                        Reset All
-                    </Button>
-                </div>
+    const renderMainView = () => (
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <button
+                    onClick={() => setActiveSection('metrics')}
+                    className="w-full flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm hover:bg-accent transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 rounded-full">
+                            <GripVertical className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium">Trip Card Metrics</div>
+                            <div className="text-sm text-muted-foreground">
+                                Customize card layout and data
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                <button
+                    onClick={() => setActiveSection('notifications')}
+                    className="w-full flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm hover:bg-accent transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 rounded-full">
+                            <Bell className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium">Notification Settings</div>
+                            <div className="text-sm text-muted-foreground">
+                                Alerts, updates, and promotions
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                <button
+                    onClick={() => setActiveSection('app-preferences')}
+                    className="w-full flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm hover:bg-accent transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                            <Settings className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium">App Preferences</div>
+                            <div className="text-sm text-muted-foreground">
+                                Theme, location, and units
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                <button
+                    onClick={() => setActiveSection('sound')}
+                    className="w-full flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm hover:bg-accent transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-full">
+                            <Volume2 className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium">Sound & Feedback</div>
+                            <div className="text-sm text-muted-foreground">
+                                Audio and haptic feedback
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                <button
+                    onClick={() => setActiveSection('driver')}
+                    className="w-full flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm hover:bg-accent transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-full">
+                            <Truck className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium">Driver Preferences</div>
+                            <div className="text-sm text-muted-foreground">
+                                Load types and equipment
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-3 pt-4 border-t">
+                <Button
+                    variant="outline"
+                    className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                    onClick={handleResetAll}
+                >
+                    Reset All
+                </Button>
             </div>
 
             {/* Quick Settings Summary */}
@@ -532,6 +732,36 @@ export function SettingsPage({
             <div className="text-xs text-gray-500 text-center pb-4">
                 Settings are automatically synced and apply across all devices
             </div>
+        </div>
+    );
+
+    return (
+        <div className="p-4 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-xl">
+                        {activeSection === 'metrics'
+                            ? 'Trip Card Metrics'
+                            : activeSection === 'notifications'
+                              ? 'Notifications'
+                              : activeSection === 'app-preferences'
+                                ? 'App Preferences'
+                                : activeSection === 'sound'
+                                  ? 'Sound & Feedback'
+                                  : activeSection === 'driver'
+                                    ? 'Driver Preferences'
+                                    : 'Settings'}
+                    </h1>
+                </div>
+            </div>
+
+            {activeSection === 'metrics' && renderMetricsSettings()}
+            {activeSection === 'notifications' && renderNotificationSettings()}
+            {activeSection === 'app-preferences' && renderAppPreferences()}
+            {activeSection === 'sound' && renderSoundSettings()}
+            {activeSection === 'driver' && renderDriverPreferences()}
+            {!activeSection && renderMainView()}
         </div>
     );
 }

@@ -67,20 +67,57 @@ export default function App() {
         setMetricsLoading(true);
 
         const loadMetrics = async () => {
-            try {
-                const metrics = await fetchCustomMetrics();
-                if (!isMounted) return;
-
-                // Merge with fallback metrics to ensure new metrics appear
+            const mergeWithFallback = (metrics: Metric[]) => {
                 const mergedMetrics = [...metrics];
                 fallbackMetrics.forEach((fm) => {
                     if (!mergedMetrics.find((m) => m.id === fm.id)) {
                         mergedMetrics.push(fm);
                     }
                 });
+                return mergedMetrics;
+            };
 
-                setCustomMetrics(mergedMetrics);
-                setDefaultMetrics(mergedMetrics);
+            const mergeSavedWithDefaults = (savedMetrics: Metric[], defaults: Metric[]) => {
+                const defaultsById = new Map(defaults.map((metric) => [metric.id, metric]));
+                const seen = new Set<string>();
+
+                const mergedFromSaved = savedMetrics.map((metric) => {
+                    const defaultMetric = defaultsById.get(metric.id);
+                    seen.add(metric.id);
+                    return defaultMetric ? { ...defaultMetric, enabled: metric.enabled } : metric;
+                });
+
+                const missingDefaults = defaults.filter((metric) => !seen.has(metric.id));
+                return [...mergedFromSaved, ...missingDefaults];
+            };
+
+            let savedMetrics: Metric[] | null = null;
+            try {
+                const savedSettings = localStorage.getItem('schneider_settings');
+                if (savedSettings) {
+                    const parsed = JSON.parse(savedSettings);
+                    if (parsed.metrics && Array.isArray(parsed.metrics)) {
+                        savedMetrics = parsed.metrics;
+                        setCustomMetrics(mergeSavedWithDefaults(parsed.metrics, fallbackMetrics));
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to parse settings from localStorage', e);
+            }
+
+            try {
+                const metrics = await fetchCustomMetrics();
+                if (!isMounted) return;
+
+                const mergedDefaults = mergeWithFallback(metrics);
+                const mergedCustom =
+                    savedMetrics && savedMetrics.length > 0
+                        ? mergeSavedWithDefaults(savedMetrics, mergedDefaults)
+                        : mergedDefaults;
+
+                setDefaultMetrics(mergedDefaults);
+                setCustomMetrics(mergedCustom);
+                setMetricsError(null);
             } catch (error) {
                 if (!isMounted) return;
                 console.error(error);
@@ -89,7 +126,11 @@ export default function App() {
                         ? 'Unable to load default metrics from the server.'
                         : 'Something went wrong while loading default metrics.'
                 );
-                setCustomMetrics(fallbackMetrics);
+                const mergedCustom =
+                    savedMetrics && savedMetrics.length > 0
+                        ? mergeSavedWithDefaults(savedMetrics, fallbackMetrics)
+                        : fallbackMetrics;
+                setCustomMetrics(mergedCustom);
                 setDefaultMetrics(fallbackMetrics);
             } finally {
                 if (isMounted) {
