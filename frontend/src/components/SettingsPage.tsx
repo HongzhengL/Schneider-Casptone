@@ -73,10 +73,6 @@ export function SettingsPage({
         );
     };
 
-    const handleReorder = (newOrder: Metric[]) => {
-        setLocalMetrics(newOrder);
-    };
-
     const handleSave = () => {
         setCustomMetrics(localMetrics);
         onNavigate('results');
@@ -122,38 +118,105 @@ export function SettingsPage({
                     {loadError && <p className="text-sm text-red-600">{loadError}</p>}
                 </CardHeader>
                 <CardContent>
-                    <Reorder.Group
-                        axis="y"
-                        values={localMetrics}
-                        onReorder={handleReorder}
-                        className="space-y-3"
-                    >
-                        {localMetrics.map((metric) => (
-                            <Reorder.Item
-                                key={metric.id}
-                                value={metric}
-                                className="bg-accent text-accent-foreground rounded-lg p-4 border border-border cursor-grab active:cursor-grabbing"
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">
+                                Left Column Metrics
+                            </h3>
+                            <Reorder.Group
+                                axis="y"
+                                values={localMetrics.filter((m) => !m.id.startsWith('right_'))}
+                                onReorder={(newOrder) => {
+                                    const rightMetrics = localMetrics.filter((m) =>
+                                        m.id.startsWith('right_')
+                                    );
+                                    setLocalMetrics([...newOrder, ...rightMetrics]);
+                                }}
+                                className="space-y-3"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <GripVertical className="w-5 h-5 text-muted-foreground" />
-                                        <div>
-                                            <div className="font-medium">{metric.label}</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {metric.enabled
-                                                    ? 'Currently shown'
-                                                    : 'Currently hidden'}
+                                {localMetrics
+                                    .filter((m) => !m.id.startsWith('right_'))
+                                    .map((metric) => (
+                                        <Reorder.Item
+                                            key={metric.id}
+                                            value={metric}
+                                            className="bg-accent text-accent-foreground rounded-lg p-4 border border-border cursor-grab active:cursor-grabbing"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <GripVertical className="w-5 h-5 text-muted-foreground" />
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {metric.label}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {metric.enabled
+                                                                ? 'Currently shown'
+                                                                : 'Currently hidden'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Switch
+                                                    checked={metric.enabled}
+                                                    onCheckedChange={() =>
+                                                        handleToggleMetric(metric.id)
+                                                    }
+                                                />
                                             </div>
-                                        </div>
-                                    </div>
-                                    <Switch
-                                        checked={metric.enabled}
-                                        onCheckedChange={() => handleToggleMetric(metric.id)}
-                                    />
-                                </div>
-                            </Reorder.Item>
-                        ))}
-                    </Reorder.Group>
+                                        </Reorder.Item>
+                                    ))}
+                            </Reorder.Group>
+                        </div>
+
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">
+                                Right Column Metrics
+                            </h3>
+                            <Reorder.Group
+                                axis="y"
+                                values={localMetrics.filter((m) => m.id.startsWith('right_'))}
+                                onReorder={(newOrder) => {
+                                    const leftMetrics = localMetrics.filter(
+                                        (m) => !m.id.startsWith('right_')
+                                    );
+                                    setLocalMetrics([...leftMetrics, ...newOrder]);
+                                }}
+                                className="space-y-3"
+                            >
+                                {localMetrics
+                                    .filter((m) => m.id.startsWith('right_'))
+                                    .map((metric) => (
+                                        <Reorder.Item
+                                            key={metric.id}
+                                            value={metric}
+                                            className="bg-accent text-accent-foreground rounded-lg p-4 border border-border cursor-grab active:cursor-grabbing"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <GripVertical className="w-5 h-5 text-muted-foreground" />
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {metric.label}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {metric.enabled
+                                                                ? 'Currently shown'
+                                                                : 'Currently hidden'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Switch
+                                                    checked={metric.enabled}
+                                                    onCheckedChange={() =>
+                                                        handleToggleMetric(metric.id)
+                                                    }
+                                                />
+                                            </div>
+                                        </Reorder.Item>
+                                    ))}
+                            </Reorder.Group>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -166,17 +229,54 @@ export function SettingsPage({
                     <div className="text-sm text-muted-foreground mb-3">
                         Enabled metrics will appear in this order:
                     </div>
-                    <div className="space-y-2">
-                        {localMetrics
-                            .filter((metric) => metric.enabled)
-                            .map((metric, index) => (
-                                <div key={metric.id} className="flex items-center gap-2">
-                                    <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs">
-                                        {index + 1}
-                                    </span>
-                                    <span className="text-sm">{metric.label}</span>
-                                </div>
-                            ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                Left Column
+                            </h4>
+                            <div className="space-y-2">
+                                {localMetrics
+                                    .filter((m) => m.enabled && !m.id.startsWith('right_'))
+                                    .map((metric, index) => (
+                                        <div key={metric.id} className="flex items-center gap-2">
+                                            <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs">
+                                                {index + 1}
+                                            </span>
+                                            <span className="text-sm">{metric.label}</span>
+                                        </div>
+                                    ))}
+                                {localMetrics.filter((m) => m.enabled && !m.id.startsWith('right_'))
+                                    .length === 0 && (
+                                    <div className="text-muted-foreground text-sm italic">
+                                        No left metrics enabled
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                Right Column
+                            </h4>
+                            <div className="space-y-2">
+                                {localMetrics
+                                    .filter((m) => m.enabled && m.id.startsWith('right_'))
+                                    .map((metric, index) => (
+                                        <div key={metric.id} className="flex items-center gap-2">
+                                            <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs">
+                                                {index + 1}
+                                            </span>
+                                            <span className="text-sm">{metric.label}</span>
+                                        </div>
+                                    ))}
+                                {localMetrics.filter((m) => m.enabled && m.id.startsWith('right_'))
+                                    .length === 0 && (
+                                    <div className="text-muted-foreground text-sm italic">
+                                        No right metrics enabled
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     {localMetrics.filter((m) => m.enabled).length === 0 && (
                         <div className="text-muted-foreground text-sm italic">

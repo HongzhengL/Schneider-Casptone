@@ -68,7 +68,14 @@ export function SwipeableTripCard({
     const [isDragging, setIsDragging] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const enabledMetrics = customMetrics.filter((m) => m.enabled && m.id !== 'rcpm');
+    const enabledMetrics = customMetrics.filter(
+        (m) => m.enabled && m.id !== 'rcpm' && !m.id.startsWith('right_')
+    );
+
+    const isRightMetricEnabled = (id: string) => {
+        const metric = customMetrics.find((m) => m.id === id);
+        return metric ? metric.enabled : true;
+    };
     const driverRcpm = calculateDriverRollingCpm(profitabilitySettings);
     const marginThreshold = calculateMarginThreshold(profitabilitySettings, driverRcpm);
 
@@ -403,20 +410,50 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.fromLocation}</div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.fromDate}</span>
-                                            {renderTimeIcon(trip.fromDate)}
-                                        </div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.toDate}</span>
-                                            {renderTimeIcon(trip.toDate)}
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            {trip.loadType}
-                                        </div>
-                                        <div className="text-sm text-gray-600 whitespace-pre-line">
-                                            {trip.details}
-                                        </div>
+                                        {customMetrics
+                                            .filter(
+                                                (m) =>
+                                                    m.enabled &&
+                                                    [
+                                                        'right_dates',
+                                                        'right_loadType',
+                                                        'right_details',
+                                                    ].includes(m.id)
+                                            )
+                                            .map((m) => {
+                                                switch (m.id) {
+                                                    case 'right_dates':
+                                                        return (
+                                                            <div
+                                                                key="dates"
+                                                                className="text-sm text-gray-600 flex items-center gap-1"
+                                                            >
+                                                                <span>{trip.fromDate}</span>
+                                                                {renderTimeIcon(trip.fromDate)}
+                                                            </div>
+                                                        );
+                                                    case 'right_loadType':
+                                                        return (
+                                                            <div
+                                                                key="loadType"
+                                                                className="text-sm text-orange-500"
+                                                            >
+                                                                {trip.loadType}
+                                                            </div>
+                                                        );
+                                                    case 'right_details':
+                                                        return (
+                                                            <div
+                                                                key="details"
+                                                                className="text-sm text-gray-600 whitespace-pre-line"
+                                                            >
+                                                                {trip.details}
+                                                            </div>
+                                                        );
+                                                    default:
+                                                        return null;
+                                                }
+                                            })}
                                     </div>
                                 </div>
 
@@ -424,22 +461,47 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.toLocation}</div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.toDate}</span>
-                                            {renderTimeIcon(trip.toDate)}
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            Drop Loaded Trailer
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            Pick Up Empty Trailer
-                                        </div>
-                                        <div className="text-sm text-gray-600">Empty 180 mi</div>
+                                        {customMetrics
+                                            .filter(
+                                                (m) =>
+                                                    m.enabled &&
+                                                    ['right_dates', 'right_trailer'].includes(m.id)
+                                            )
+                                            .map((m) => {
+                                                switch (m.id) {
+                                                    case 'right_dates':
+                                                        return (
+                                                            <div
+                                                                key="dates"
+                                                                className="text-sm text-gray-600 flex items-center gap-1"
+                                                            >
+                                                                <span>{trip.toDate}</span>
+                                                                {renderTimeIcon(trip.toDate)}
+                                                            </div>
+                                                        );
+                                                    case 'right_trailer':
+                                                        return (
+                                                            <div key="trailer">
+                                                                <div className="text-sm text-orange-500">
+                                                                    Drop Loaded Trailer
+                                                                </div>
+                                                                <div className="text-sm text-orange-500">
+                                                                    Pick Up Empty Trailer
+                                                                </div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    Empty 180 mi
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    default:
+                                                        return null;
+                                                }
+                                            })}
                                     </div>
                                 </div>
                             </div>
 
-                            {trip.hasReload && (
+                            {trip.hasReload && isRightMetricEnabled('right_reload') && (
                                 <div className="mt-3 flex items-center gap-2 text-orange-500">
                                     <RotateCcw className="w-4 h-4" />
                                     <span className="text-sm">Reload</span>

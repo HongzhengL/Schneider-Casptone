@@ -7,6 +7,11 @@ export const fallbackMetrics = [
     { id: 'loadedRpm', label: 'Loaded RPM', enabled: true },
     { id: 'totalRpm', label: 'Est Total RPM', enabled: false },
     { id: 'loadType', label: 'Load Type', enabled: false },
+    { id: 'right_dates', label: 'Dates (Right)', enabled: true },
+    { id: 'right_loadType', label: 'Load Type (Right)', enabled: true },
+    { id: 'right_details', label: 'Details (Right)', enabled: true },
+    { id: 'right_trailer', label: 'Trailer Info (Right)', enabled: true },
+    { id: 'right_reload', label: 'Reload Info (Right)', enabled: true },
 ] satisfies readonly Metric[];
 
 export const normalizeFilters = (

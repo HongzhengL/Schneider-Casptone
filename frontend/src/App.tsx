@@ -70,8 +70,17 @@ export default function App() {
             try {
                 const metrics = await fetchCustomMetrics();
                 if (!isMounted) return;
-                setCustomMetrics(metrics);
-                setDefaultMetrics(metrics);
+
+                // Merge with fallback metrics to ensure new metrics appear
+                const mergedMetrics = [...metrics];
+                fallbackMetrics.forEach((fm) => {
+                    if (!mergedMetrics.find((m) => m.id === fm.id)) {
+                        mergedMetrics.push(fm);
+                    }
+                });
+
+                setCustomMetrics(mergedMetrics);
+                setDefaultMetrics(mergedMetrics);
             } catch (error) {
                 if (!isMounted) return;
                 console.error(error);
