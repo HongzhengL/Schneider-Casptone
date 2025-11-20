@@ -516,6 +516,31 @@ export function ComparisonDrawer({
                                                 </td>
                                             ))}
                                         </tr>
+                                        {/* View Details */}
+                                        <tr className="hover:bg-gray-50">
+                                            <td
+                                                className="p-3 border-b font-medium text-gray-700 bg-white whitespace-nowrap"
+                                                style={{
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 5,
+                                                    minWidth: `${metricColumnWidth}px`,
+                                                    boxShadow: stickyShadow,
+                                                }}
+                                            >
+                                                Actions
+                                            </td>
+                                            {loads.map((load) => (
+                                                <td
+                                                    key={load.id}
+                                                    className="p-3 border-b border-l text-center"
+                                                >
+                                                    <button className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded hover:bg-orange-600 transition-colors w-full">
+                                                        View Details
+                                                    </button>
+                                                </td>
+                                            ))}
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>

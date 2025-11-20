@@ -94,6 +94,7 @@ export function FindLoadsResultsPage({
 
     const handleDislike = (tripId: string) => {
         setDislikedTrips((prev) => [...prev, tripId]);
+        setComparedTrips((prev) => prev.filter((id) => id !== tripId));
     };
 
     const handleUndoDislike = (tripId: string) => {
