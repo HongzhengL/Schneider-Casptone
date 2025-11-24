@@ -84,27 +84,38 @@ export function AdvancedFiltersDialog({
 
     const serviceGroups = useMemo(
         () => [
-            { key: 'compliance', label: 'Compliance', ids: ['twic', 'hazmat', 'high-value'] },
             {
-                key: 'customer-live',
-                label: 'Customer Live',
-                ids: ['customer-live-load', 'customer-live-unload'],
-            },
-            { key: 'live', label: 'Live', ids: ['live-load', 'live-unload'] },
-            { key: 'lumper', label: 'Lumper', ids: ['lumper-load', 'lumper-unload'] },
-            {
-                key: 'driver-assist',
-                label: 'Driver Assist',
-                ids: ['driver-assist-load', 'driver-assist-unload'],
+                key: 'special-requirements',
+                label: 'Special Requirements',
+                ids: ['twic', 'hazmat', 'high-value'],
             },
             {
-                key: 'driver-load',
-                label: 'Driver Load/Unload',
-                ids: ['driver-load', 'driver-unload'],
+                key: 'extra-stops-trailer',
+                label: 'Extra Stops & Trailer Moves',
+                ids: ['stop-off', 'trailer-shuttle', 'trailer-spot', 'pick-up-relay', 'drop-relay'],
             },
-            { key: 'trailer', label: 'Trailer', ids: ['trailer-shuttle', 'trailer-spot'] },
-            { key: 'relay', label: 'Relay', ids: ['pick-up-relay', 'drop-relay'] },
-            { key: 'stops', label: 'Stops', ids: ['stop-off'] },
+            {
+                key: 'loading-services',
+                label: 'Loading Services',
+                ids: [
+                    'customer-live-load',
+                    'live-load',
+                    'lumper-load',
+                    'driver-assist-load',
+                    'driver-load',
+                ],
+            },
+            {
+                key: 'unloading-services',
+                label: 'Unloading Services',
+                ids: [
+                    'customer-live-unload',
+                    'live-unload',
+                    'lumper-unload',
+                    'driver-assist-unload',
+                    'driver-unload',
+                ],
+            },
         ],
         []
     );
@@ -375,6 +386,11 @@ export function AdvancedFiltersDialog({
                                                     {includedCount} selected
                                                 </span>
                                             </summary>
+                                            {group.description && (
+                                                <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 border-b">
+                                                    {group.description}
+                                                </div>
+                                            )}
                                             <div className="mt-2 grid grid-cols-3 gap-x-4 gap-y-3 px-3 pb-3">
                                                 {visibleIds.map((id) => (
                                                     <div

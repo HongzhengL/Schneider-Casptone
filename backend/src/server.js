@@ -14,9 +14,11 @@ import {
     appVersion,
 } from './data/driverPortal.js';
 import { defaultMetrics } from './data/metrics.js';
+import { leaderboardData } from './data/leaderboard.js';
 import { authRouter } from './routes/auth.js';
 import { profilesRouter } from './routes/profiles.js';
 import { profitabilitySettingsRouter } from './routes/profitabilitySettings.js';
+import { coverageRouter } from './routes/coverage.js';
 import { buildAuthGuard } from './middleware/auth.js';
 import { errorHandler, requestIdMiddleware } from './middleware/errorHandler.js';
 
@@ -43,6 +45,7 @@ app.use('/api', authGuard);
 app.use('/api/auth', authRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/profitability/settings', profitabilitySettingsRouter);
+app.use('/api/profitability/coverage', coverageRouter);
 
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -230,6 +233,10 @@ app.get('/api/driver/portal', (_req, res) => {
 
 app.get('/api/settings/metrics', (_req, res) => {
     res.json(defaultMetrics);
+});
+
+app.get('/api/leaderboard', (_req, res) => {
+    res.json(leaderboardData);
 });
 
 app.use(errorHandler);

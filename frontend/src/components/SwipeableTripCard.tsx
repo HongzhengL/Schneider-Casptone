@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, PanInfo } from 'motion/react';
-import { Eye, RotateCcw, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { Eye, RotateCcw, X, TrendingUp, TrendingDown, Check, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
 import { calculateDriverRollingCpm, calculateMarginThreshold } from '../utils/profitability';
@@ -40,7 +40,9 @@ interface SwipeableTripCardProps {
     customMetrics: Metric[];
     onDislike: (tripId: string) => void;
     onUndoDislike: (tripId: string) => void;
+    onCompare?: (tripId: string) => void;
     profitabilitySettings: ProfitabilitySettings;
+    isCompared?: boolean;
 }
 
 export function SwipeableTripCard({
@@ -48,7 +50,9 @@ export function SwipeableTripCard({
     customMetrics,
     onDislike,
     onUndoDislike,
+    onCompare,
     profitabilitySettings,
+    isCompared = false,
 }: SwipeableTripCardProps) {
     const currencyFormatter = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -64,7 +68,14 @@ export function SwipeableTripCard({
     const [isDragging, setIsDragging] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const enabledMetrics = customMetrics.filter((m) => m.enabled && m.id !== 'rcpm');
+    const enabledMetrics = customMetrics.filter(
+        (m) => m.enabled && m.id !== 'rcpm' && !m.id.startsWith('right_')
+    );
+
+    const isRightMetricEnabled = (id: string) => {
+        const metric = customMetrics.find((m) => m.id === id);
+        return metric ? metric.enabled : true;
+    };
     const driverRcpm = calculateDriverRollingCpm(profitabilitySettings);
     const marginThreshold = calculateMarginThreshold(profitabilitySettings, driverRcpm);
 
@@ -92,6 +103,18 @@ export function SwipeableTripCard({
                     onClick: () => onUndoDislike(trip.id),
                 },
                 icon: <RotateCcw className="w-4 h-4" />,
+            });
+        }
+        // If swiped right more than 150px, trigger compare
+        else if (info.offset.x > 150 && onCompare) {
+            if (isCompared) {
+                toast.info(`Load already in comparison list`);
+                return;
+            }
+
+            onCompare(trip.id);
+            toast.success(`Load added to compare`, {
+                duration: 3000,
             });
         }
     };
@@ -223,13 +246,32 @@ export function SwipeableTripCard({
 
     return (
         <div className="relative rounded-lg overflow-hidden">
-            {/* Background Action Area - Only revealed when swiping left */}
+            {/* Background Action Area - Revealed when swiping left (dislike) */}
             {isDragging && dragX < 0 && (
                 <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-6 rounded-lg z-0">
                     <div className="flex items-center text-white">
                         <div className="flex flex-col items-center gap-1">
                             <X className="w-8 h-8" />
                             <span className="text-sm font-medium">Dislike</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Background Action Area - Revealed when swiping right (compare) */}
+            {isDragging && dragX > 0 && (
+                <div
+                    className={`absolute inset-0 ${isCompared ? 'bg-gray-500' : 'bg-green-500'} flex items-center justify-start px-6 rounded-lg z-0`}
+                >
+                    <div className="flex items-center text-white">
+                        <div className="flex flex-col items-center gap-1">
+                            {isCompared ? (
+                                <ClipboardList className="w-8 h-8" />
+                            ) : (
+                                <Check className="w-8 h-8" />
+                            )}
+                            <span className="text-sm font-medium">
+                                {isCompared ? 'Already Added' : 'Compare'}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -246,9 +288,15 @@ export function SwipeableTripCard({
                 onDrag={handleDrag}
                 onDragEnd={handleDragEnd}
                 animate={getCardTransform()}
-                className="bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10"
+                className={`bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10 ${isCompared ? 'border-green-500 ring-1 ring-green-500' : ''}`}
                 style={{ touchAction: 'pan-x' }}
             >
+                {isCompared && (
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg z-20 font-medium flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Added
+                    </div>
+                )}
                 <div className="p-4">
                     <div className="flex gap-4">
                         {/* Left Side - Price and Custom Metrics */}
@@ -362,20 +410,50 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.fromLocation}</div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.fromDate}</span>
-                                            {renderTimeIcon(trip.fromDate)}
-                                        </div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.toDate}</span>
-                                            {renderTimeIcon(trip.toDate)}
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            {trip.loadType}
-                                        </div>
-                                        <div className="text-sm text-gray-600 whitespace-pre-line">
-                                            {trip.details}
-                                        </div>
+                                        {customMetrics
+                                            .filter(
+                                                (m) =>
+                                                    m.enabled &&
+                                                    [
+                                                        'right_dates',
+                                                        'right_loadType',
+                                                        'right_details',
+                                                    ].includes(m.id)
+                                            )
+                                            .map((m) => {
+                                                switch (m.id) {
+                                                    case 'right_dates':
+                                                        return (
+                                                            <div
+                                                                key="dates"
+                                                                className="text-sm text-gray-600 flex items-center gap-1"
+                                                            >
+                                                                <span>{trip.fromDate}</span>
+                                                                {renderTimeIcon(trip.fromDate)}
+                                                            </div>
+                                                        );
+                                                    case 'right_loadType':
+                                                        return (
+                                                            <div
+                                                                key="loadType"
+                                                                className="text-sm text-orange-500"
+                                                            >
+                                                                {trip.loadType}
+                                                            </div>
+                                                        );
+                                                    case 'right_details':
+                                                        return (
+                                                            <div
+                                                                key="details"
+                                                                className="text-sm text-gray-600 whitespace-pre-line"
+                                                            >
+                                                                {trip.details}
+                                                            </div>
+                                                        );
+                                                    default:
+                                                        return null;
+                                                }
+                                            })}
                                     </div>
                                 </div>
 
@@ -383,22 +461,47 @@ export function SwipeableTripCard({
                                     <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                                     <div>
                                         <div className="font-semibold">{trip.toLocation}</div>
-                                        <div className="text-sm text-gray-600 flex items-center gap-1">
-                                            <span>{trip.toDate}</span>
-                                            {renderTimeIcon(trip.toDate)}
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            Drop Loaded Trailer
-                                        </div>
-                                        <div className="text-sm text-orange-500">
-                                            Pick Up Empty Trailer
-                                        </div>
-                                        <div className="text-sm text-gray-600">Empty 180 mi</div>
+                                        {customMetrics
+                                            .filter(
+                                                (m) =>
+                                                    m.enabled &&
+                                                    ['right_dates', 'right_trailer'].includes(m.id)
+                                            )
+                                            .map((m) => {
+                                                switch (m.id) {
+                                                    case 'right_dates':
+                                                        return (
+                                                            <div
+                                                                key="dates"
+                                                                className="text-sm text-gray-600 flex items-center gap-1"
+                                                            >
+                                                                <span>{trip.toDate}</span>
+                                                                {renderTimeIcon(trip.toDate)}
+                                                            </div>
+                                                        );
+                                                    case 'right_trailer':
+                                                        return (
+                                                            <div key="trailer">
+                                                                <div className="text-sm text-orange-500">
+                                                                    Drop Loaded Trailer
+                                                                </div>
+                                                                <div className="text-sm text-orange-500">
+                                                                    Pick Up Empty Trailer
+                                                                </div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    Empty 180 mi
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    default:
+                                                        return null;
+                                                }
+                                            })}
                                     </div>
                                 </div>
                             </div>
 
-                            {trip.hasReload && (
+                            {trip.hasReload && isRightMetricEnabled('right_reload') && (
                                 <div className="mt-3 flex items-center gap-2 text-orange-500">
                                     <RotateCcw className="w-4 h-4" />
                                     <span className="text-sm">Reload</span>

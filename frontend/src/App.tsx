@@ -10,6 +10,7 @@ import {
     type ProfitabilitySettings,
 } from './components/ProfitabilitySettingsPage';
 import { MorePage } from './components/MorePage';
+import { LeaderboardPage } from './components/LeaderboardPage';
 import { BottomNavigation } from './components/BottomNavigation';
 import { Toaster } from './components/ui/sonner';
 import { useTheme } from './contexts/ThemeContext';
@@ -66,11 +67,57 @@ export default function App() {
         setMetricsLoading(true);
 
         const loadMetrics = async () => {
+            const mergeWithFallback = (metrics: Metric[]) => {
+                const mergedMetrics = [...metrics];
+                fallbackMetrics.forEach((fm) => {
+                    if (!mergedMetrics.find((m) => m.id === fm.id)) {
+                        mergedMetrics.push(fm);
+                    }
+                });
+                return mergedMetrics;
+            };
+
+            const mergeSavedWithDefaults = (savedMetrics: Metric[], defaults: Metric[]) => {
+                const defaultsById = new Map(defaults.map((metric) => [metric.id, metric]));
+                const seen = new Set<string>();
+
+                const mergedFromSaved = savedMetrics.map((metric) => {
+                    const defaultMetric = defaultsById.get(metric.id);
+                    seen.add(metric.id);
+                    return defaultMetric ? { ...defaultMetric, enabled: metric.enabled } : metric;
+                });
+
+                const missingDefaults = defaults.filter((metric) => !seen.has(metric.id));
+                return [...mergedFromSaved, ...missingDefaults];
+            };
+
+            let savedMetrics: Metric[] | null = null;
+            try {
+                const savedSettings = localStorage.getItem('schneider_settings');
+                if (savedSettings) {
+                    const parsed = JSON.parse(savedSettings);
+                    if (parsed.metrics && Array.isArray(parsed.metrics)) {
+                        savedMetrics = parsed.metrics;
+                        setCustomMetrics(mergeSavedWithDefaults(parsed.metrics, fallbackMetrics));
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to parse settings from localStorage', e);
+            }
+
             try {
                 const metrics = await fetchCustomMetrics();
                 if (!isMounted) return;
-                setCustomMetrics(metrics);
-                setDefaultMetrics(metrics);
+
+                const mergedDefaults = mergeWithFallback(metrics);
+                const mergedCustom =
+                    savedMetrics && savedMetrics.length > 0
+                        ? mergeSavedWithDefaults(savedMetrics, mergedDefaults)
+                        : mergedDefaults;
+
+                setDefaultMetrics(mergedDefaults);
+                setCustomMetrics(mergedCustom);
+                setMetricsError(null);
             } catch (error) {
                 if (!isMounted) return;
                 console.error(error);
@@ -79,7 +126,11 @@ export default function App() {
                         ? 'Unable to load default metrics from the server.'
                         : 'Something went wrong while loading default metrics.'
                 );
-                setCustomMetrics(fallbackMetrics);
+                const mergedCustom =
+                    savedMetrics && savedMetrics.length > 0
+                        ? mergeSavedWithDefaults(savedMetrics, fallbackMetrics)
+                        : fallbackMetrics;
+                setCustomMetrics(mergedCustom);
                 setDefaultMetrics(fallbackMetrics);
             } finally {
                 if (isMounted) {
@@ -207,7 +258,12 @@ export default function App() {
     const renderCurrentPage = () => {
         switch (currentPage) {
             case 'home':
-                return <HomePage onNavigate={setCurrentPage} />;
+                return (
+                    <HomePage
+                        onNavigate={setCurrentPage}
+                        profitabilitySettings={profitabilitySettings}
+                    />
+                );
             case 'notice':
                 return <NoticePage onNavigate={setCurrentPage} />;
             case 'search':
@@ -259,6 +315,8 @@ export default function App() {
                 );
             case 'more':
                 return <MorePage onNavigate={setCurrentPage} />;
+            case 'leaderboard':
+                return <LeaderboardPage onNavigate={setCurrentPage} />;
             default:
                 return <HomePage onNavigate={setCurrentPage} />;
         }
@@ -312,7 +370,7 @@ export default function App() {
                 {renderCurrentPage()}
             </main>
             <BottomNavigation currentPage={currentPage} onNavigate={setCurrentPage} />
-            <Toaster theme={isDark ? 'dark' : 'light'} />
+            <Toaster theme={isDark ? 'dark' : 'light'} position="bottom-right" />
         </div>
     );
 }

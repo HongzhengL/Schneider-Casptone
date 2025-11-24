@@ -1,23 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, Truck } from 'lucide-react';
 import { Button } from './ui/button';
-import { DowntimeCostReminder } from './DowntimeCostReminder';
-import { fetchSuggestedLoads, ApiError } from '../services/api';
-import type { SuggestedLoad } from '../types/api';
+import { FixedCoverageInsight } from './FixedCoverageInsight';
+import { fetchSuggestedLoads, fetchCoverage, ApiError } from '../services/api';
+import type { CoverageResponse, SuggestedLoad } from '../types/api';
+import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
+import { calculateDriverFixedCosts } from '../utils/profitability';
 
 interface HomePageProps {
     onNavigate: (page: string) => void;
+    profitabilitySettings?: ProfitabilitySettings;
 }
 
-export function HomePage({ onNavigate }: HomePageProps) {
+export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
     const [suggestedLoads, setSuggestedLoads] = useState<SuggestedLoad[]>([]);
+    const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
+    const [coverageError, setCoverageError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Placeholder for fixed cost per day; in a real application this value would be
-    // provided by user settings or fetched from a backend API. It represents
-    // the daily fixed cost used to calculate downtime expenses.
-    const FIXED_COST_PER_DAY = 150;
+    const driverFixedCosts = useMemo(() => {
+        if (!profitabilitySettings) return { weekly: 2771.36, daily: 400, monthly: 12000 };
+        return calculateDriverFixedCosts(profitabilitySettings);
+    }, [profitabilitySettings]);
 
     useEffect(() => {
         let isMounted = true;
@@ -33,8 +38,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 console.error(err);
                 setError(
                     err instanceof ApiError
-                        ? 'Unable to load suggested assignments.'
-                        : 'Something went wrong while loading assignments.'
+                        ? 'Unable to load dashboard data.'
+                        : 'Something went wrong while loading dashboard data.'
                 );
             } finally {
                 if (isMounted) {
@@ -43,7 +48,25 @@ export function HomePage({ onNavigate }: HomePageProps) {
             }
         };
 
+        const loadCoverage = async () => {
+            try {
+                const response = await fetchCoverage();
+                if (!isMounted) return;
+                setCoverage(response);
+                setCoverageError(null);
+            } catch (err) {
+                if (!isMounted) return;
+                console.error(err);
+                setCoverageError(
+                    err instanceof ApiError
+                        ? 'Unable to load coverage summary.'
+                        : 'Something went wrong while loading coverage data.'
+                );
+            }
+        };
+
         loadSuggested();
+        loadCoverage();
 
         return () => {
             isMounted = false;
@@ -68,8 +91,20 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
                 <h2 className="text-xl">Welcome, Johnny Rodriguez</h2>
                 <p className="text-orange-100 text-sm">Driver ID: SNI-78432 | Dedicated Fleet</p>
-                <DowntimeCostReminder fixedCostPerDay={FIXED_COST_PER_DAY} />
             </div>
+
+            {/* Fixed Coverage Insight */}
+            <FixedCoverageInsight
+                fixedCostPerPeriod={driverFixedCosts.weekly}
+                dailyFixedCost={driverFixedCosts.daily}
+                coveredAmount={coverage?.coveredAmount ?? 0}
+                periodStart={coverage?.startOfWeek}
+                periodEnd={coverage?.endOfWeek}
+                runCount={coverage?.runCount}
+                coverageError={coverageError}
+                onAdjust={() => onNavigate('profitability-settings')}
+                onLeaderboard={() => onNavigate('leaderboard')}
+            />
 
             {/* Quick Action Section */}
             <div className="space-y-4">

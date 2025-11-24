@@ -8,12 +8,14 @@ import type {
     LoadRecord,
     LoadRecordResponse,
     LoadSearchFilters,
+    LeaderboardEntry,
     Metric,
     NoticesResponse,
     SuggestedLoad,
     Profile,
     ProfileInput,
     SignupResponse,
+    CoverageResponse,
 } from '../types/api';
 import type { ProfitabilitySettings } from '../components/ProfitabilitySettingsPage';
 
@@ -270,4 +272,14 @@ export async function saveProfitabilitySettings(
 
 export async function fetchProfitabilityAverages(): Promise<ProfitabilitySettings> {
     return request<ProfitabilitySettings>('/profitability/settings/averages');
+}
+
+// Leaderboard API
+export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+    return request<LeaderboardEntry[]>('/leaderboard');
+}
+
+// Coverage API
+export async function fetchCoverage(): Promise<CoverageResponse> {
+    return request<CoverageResponse>('/profitability/coverage');
 }
