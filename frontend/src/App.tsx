@@ -17,6 +17,7 @@ import { useTheme } from './contexts/ThemeContext';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { useAuth } from './contexts/AuthContext';
+import { LoadDetailPage } from './components/LoadDetailPage';
 import {
     fetchCustomMetrics,
     ApiError,
@@ -29,7 +30,7 @@ import {
     saveProfitabilitySettings,
 } from './services/api';
 import { createEmptyProfitabilitySettings } from './constants/profitabilitySettings';
-import type { LoadSearchFilters, Metric, Profile } from './types/api';
+import type { LoadRecord, LoadSearchFilters, Metric, Profile } from './types/api';
 import { createDefaultLoadFilters } from './constants/loadFilters';
 import { fallbackMetrics, normalizeFilters, normalizeProfile } from './utils/profileHelpers';
 
@@ -49,6 +50,7 @@ export default function App() {
     const [profitabilitySettings, setProfitabilitySettings] = useState<ProfitabilitySettings>(
         createEmptyProfitabilitySettings()
     );
+    const [selectedLoad, setSelectedLoad] = useState<LoadRecord | null>(null);
     const { isAuthenticated, isInitializing } = useAuth();
     const [authView, setAuthView] = useState<'login' | 'signup'>('login');
     const [loginEmailPrefill, setLoginEmailPrefill] = useState('');
@@ -290,6 +292,30 @@ export default function App() {
                         filters={loadFilters}
                         onFiltersChange={setLoadFilters}
                         profitabilitySettings={profitabilitySettings}
+                        onSelectLoad={(load) => {
+                            setSelectedLoad(load);
+                            setCurrentPage('load-detail');
+                        }}
+                    />
+                );
+            case 'load-detail':
+                return selectedLoad ? (
+                    <LoadDetailPage
+                        load={selectedLoad}
+                        profitabilitySettings={profitabilitySettings}
+                        onBack={() => setCurrentPage('findloadsresults')}
+                    />
+                ) : (
+                    <FindLoadsResultsPage
+                        customMetrics={customMetrics}
+                        onNavigate={setCurrentPage}
+                        filters={loadFilters}
+                        onFiltersChange={setLoadFilters}
+                        profitabilitySettings={profitabilitySettings}
+                        onSelectLoad={(load) => {
+                            setSelectedLoad(load);
+                            setCurrentPage('load-detail');
+                        }}
                     />
                 );
             case 'results':
