@@ -18,6 +18,10 @@ import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { useAuth } from './contexts/AuthContext';
 import { LoadDetailPage } from './components/LoadDetailPage';
+import { BookLoadConfirmationPage } from './components/BookLoadConfirmationPage';
+import { BookLoadDetailsPage } from './components/BookLoadDetailsPage';
+import { BookLoadPaymentPage } from './components/BookLoadPaymentPage';
+import { BookLoadConfirmedPage } from './components/BookLoadConfirmedPage';
 import {
     fetchCustomMetrics,
     ApiError,
@@ -33,6 +37,7 @@ import { createEmptyProfitabilitySettings } from './constants/profitabilitySetti
 import type { LoadRecord, LoadSearchFilters, Metric, Profile } from './types/api';
 import { createDefaultLoadFilters } from './constants/loadFilters';
 import { fallbackMetrics, normalizeFilters, normalizeProfile } from './utils/profileHelpers';
+import { calculateDriverRollingCpm, calculateMarginThreshold } from './utils/profitability';
 
 export default function App() {
     const { isDark } = useTheme();
@@ -304,6 +309,10 @@ export default function App() {
                         load={selectedLoad}
                         profitabilitySettings={profitabilitySettings}
                         onBack={() => setCurrentPage('findloadsresults')}
+                        onBookLoad={(load) => {
+                            setSelectedLoad(load);
+                            setCurrentPage('bookload-confirmation');
+                        }}
                     />
                 ) : (
                     <FindLoadsResultsPage
@@ -317,6 +326,62 @@ export default function App() {
                             setCurrentPage('load-detail');
                         }}
                     />
+                );
+            case 'bookload-confirmation': {
+                const rcpm = calculateDriverRollingCpm(profitabilitySettings);
+                const margin = calculateMarginThreshold(profitabilitySettings, rcpm);
+
+                return selectedLoad ? (
+                    <BookLoadConfirmationPage
+                        load={selectedLoad}
+                        rcpm={rcpm}
+                        margin={margin}
+                        onNavigate={setCurrentPage}
+                        onBack={() => setCurrentPage('load-detail')}
+                    />
+                ) : (
+                    <FindLoadsResultsPage
+                        customMetrics={customMetrics}
+                        onNavigate={setCurrentPage}
+                        filters={loadFilters}
+                        onFiltersChange={setLoadFilters}
+                        profitabilitySettings={profitabilitySettings}
+                        onSelectLoad={(load) => {
+                            setSelectedLoad(load);
+                            setCurrentPage('bookload-confirmation');
+                        }}
+                    />
+                );
+            }
+            case 'bookloaddetails':
+                return selectedLoad ? (
+                    <BookLoadDetailsPage
+                        onBack={() => setCurrentPage('bookload-confirmation')}
+                        onNavigate={setCurrentPage}
+                    />
+                ) : (
+                    <FindLoadsResultsPage
+                        customMetrics={customMetrics}
+                        onNavigate={setCurrentPage}
+                        filters={loadFilters}
+                        onFiltersChange={setLoadFilters}
+                        profitabilitySettings={profitabilitySettings}
+                        onSelectLoad={(load) => {
+                            setSelectedLoad(load);
+                            setCurrentPage('bookloaddetails');
+                        }}
+                    />
+                );
+            case 'bookloadpayment':
+                return (
+                    <BookLoadPaymentPage
+                        onBack={() => setCurrentPage('bookloaddetails')}
+                        onNavigate={setCurrentPage}
+                    />
+                );
+            case 'bookloadconfirmed':
+                return (
+                    <BookLoadConfirmedPage load={selectedLoad} onNavigate={setCurrentPage} />
                 );
             case 'results':
                 return <ResultsPage onNavigate={setCurrentPage} />;
