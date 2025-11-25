@@ -20,7 +20,8 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
             page === 'findloadsresults' ||
             page === 'quicksearch' ||
             page === 'pickupdate' ||
-            page === 'dropdate'
+            page === 'dropdate' ||
+            page === 'load-detail'
         ) {
             return 'search';
         }

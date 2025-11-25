@@ -43,6 +43,7 @@ interface SwipeableTripCardProps {
     onCompare?: (tripId: string) => void;
     profitabilitySettings: ProfitabilitySettings;
     isCompared?: boolean;
+    onSelect?: (trip: Trip) => void;
 }
 
 export function SwipeableTripCard({
@@ -53,6 +54,7 @@ export function SwipeableTripCard({
     onCompare,
     profitabilitySettings,
     isCompared = false,
+    onSelect,
 }: SwipeableTripCardProps) {
     const currencyFormatter = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -66,6 +68,7 @@ export function SwipeableTripCard({
 
     const [dragX, setDragX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const hasDraggedRef = useRef(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
     const enabledMetrics = customMetrics.filter(
@@ -81,10 +84,14 @@ export function SwipeableTripCard({
 
     const handleDragStart = () => {
         setIsDragging(true);
+        hasDraggedRef.current = false;
     };
 
     const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         setDragX(info.offset.x);
+        if (Math.abs(info.offset.x) > 10) {
+            hasDraggedRef.current = true;
+        }
     };
 
     const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -93,6 +100,7 @@ export function SwipeableTripCard({
 
         // If swiped left more than 150px, trigger dislike
         if (info.offset.x < -150) {
+            hasDraggedRef.current = true;
             onDislike(trip.id);
 
             // Show toast with undo option
@@ -107,6 +115,7 @@ export function SwipeableTripCard({
         }
         // If swiped right more than 150px, trigger compare
         else if (info.offset.x > 150 && onCompare) {
+            hasDraggedRef.current = true;
             if (isCompared) {
                 toast.info(`Load already in comparison list`);
                 return;
@@ -116,6 +125,12 @@ export function SwipeableTripCard({
             toast.success(`Load added to compare`, {
                 duration: 3000,
             });
+        }
+
+        if (hasDraggedRef.current) {
+            setTimeout(() => {
+                hasDraggedRef.current = false;
+            }, 150);
         }
     };
 
@@ -288,6 +303,11 @@ export function SwipeableTripCard({
                 onDrag={handleDrag}
                 onDragEnd={handleDragEnd}
                 animate={getCardTransform()}
+                onClick={() => {
+                    if (onSelect && !hasDraggedRef.current) {
+                        onSelect(trip);
+                    }
+                }}
                 className={`bg-white rounded-lg border shadow-sm relative cursor-grab active:cursor-grabbing z-10 ${isCompared ? 'border-green-500 ring-1 ring-green-500' : ''}`}
                 style={{ touchAction: 'pan-x' }}
             >

@@ -11,7 +11,6 @@ import { ComparisonDrawer } from './ComparisonDrawer';
 import { fetchFindLoads, ApiError } from '../services/api';
 import type { AdvancedFilterValues, LoadRecord, LoadSearchFilters } from '../types/api';
 import type { ProfitabilitySettings } from './ProfitabilitySettingsPage';
-
 const formatDate = (value: string) => {
     const date = new Date(`${value}T00:00:00`);
     return {
@@ -36,6 +35,7 @@ interface FindLoadsResultsPageProps {
     filters: LoadSearchFilters;
     onFiltersChange: (filters: LoadSearchFilters) => void;
     profitabilitySettings: ProfitabilitySettings;
+    onSelectLoad?: (load: LoadRecord) => void;
 }
 
 export function FindLoadsResultsPage({
@@ -44,6 +44,7 @@ export function FindLoadsResultsPage({
     filters,
     onFiltersChange,
     profitabilitySettings,
+    onSelectLoad,
 }: FindLoadsResultsPageProps) {
     const [tripData, setTripData] = useState<LoadRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -105,9 +106,10 @@ export function FindLoadsResultsPage({
         setComparedTrips((prev) => [...prev, tripId]);
     };
 
-    const comparedTripObjects = useMemo(() => {
-        return tripData.filter((trip) => comparedTrips.includes(trip.id));
-    }, [tripData, comparedTrips]);
+    const comparedTripObjects = useMemo(
+        () => tripData.filter((trip) => comparedTrips.includes(trip.id)),
+        [tripData, comparedTrips]
+    );
 
     const handleRemoveComparedTrip = (tripId: string) => {
         setComparedTrips((prev) => prev.filter((id) => id !== tripId));
@@ -335,6 +337,7 @@ export function FindLoadsResultsPage({
                             onCompare={handleCompare}
                             profitabilitySettings={profitabilitySettings}
                             isCompared={comparedTrips.includes(trip.id)}
+                            onSelect={onSelectLoad}
                         />
                     ))
                 ) : (
@@ -392,9 +395,10 @@ export function FindLoadsResultsPage({
 
             {/* Floating Comparison Button */}
             {comparedTrips.length > 0 &&
+                typeof document !== 'undefined' &&
                 createPortal(
                     <div
-                        className="fixed left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 pointer-events-none flex justify-end z-50"
+                        className="fixed left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 pointer-events-none flex justify-end z-40"
                         style={{ bottom: '6rem' }}
                     >
                         <Button
