@@ -27,7 +27,8 @@ export function BookLoadPaymentPage({ onNavigate, onBack }: BookLoadPaymentPageP
         if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
         if (!formData.routingNumber.trim()) newErrors.routingNumber = 'Routing number is required';
         if (!formData.accountNumber.trim()) newErrors.accountNumber = 'Account number is required';
-        if (!formData.accountHolderName.trim()) newErrors.accountHolderName = 'Account holder name is required';
+        if (!formData.accountHolderName.trim())
+            newErrors.accountHolderName = 'Account holder name is required';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;

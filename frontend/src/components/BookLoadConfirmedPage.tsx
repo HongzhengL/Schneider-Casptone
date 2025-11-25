@@ -100,11 +100,15 @@ export function BookLoadConfirmedPage({ load, onNavigate }: BookLoadConfirmedPag
                     <div className="space-y-3">
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-600">Booking Number</span>
-                            <span className="text-sm font-medium text-gray-900">{bookingNumber}</span>
+                            <span className="text-sm font-medium text-gray-900">
+                                {bookingNumber}
+                            </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-600">Confirmed On</span>
-                            <span className="text-sm font-medium text-gray-900">{confirmationDate}</span>
+                            <span className="text-sm font-medium text-gray-900">
+                                {confirmationDate}
+                            </span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-gray-600">Status</span>
@@ -144,7 +148,9 @@ export function BookLoadConfirmedPage({ load, onNavigate }: BookLoadConfirmedPag
                         <div className="pt-3 border-t">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">Total Rate</span>
-                                <span className="font-semibold text-lg text-gray-900">{load.price}</span>
+                                <span className="font-semibold text-lg text-gray-900">
+                                    {load.price}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -168,7 +174,10 @@ export function BookLoadConfirmedPage({ load, onNavigate }: BookLoadConfirmedPag
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-blue-600 mt-0.5">2.</span>
-                            <span>The broker will contact you within 24 hours to confirm pickup details</span>
+                            <span>
+                                The broker will contact you within 24 hours to confirm pickup
+                                details
+                            </span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-blue-600 mt-0.5">3.</span>

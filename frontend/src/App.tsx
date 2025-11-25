@@ -380,9 +380,7 @@ export default function App() {
                     />
                 );
             case 'bookloadconfirmed':
-                return (
-                    <BookLoadConfirmedPage load={selectedLoad} onNavigate={setCurrentPage} />
-                );
+                return <BookLoadConfirmedPage load={selectedLoad} onNavigate={setCurrentPage} />;
             case 'results':
                 return <ResultsPage onNavigate={setCurrentPage} />;
             case 'settings':

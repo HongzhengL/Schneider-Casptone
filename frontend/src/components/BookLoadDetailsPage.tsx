@@ -34,7 +34,8 @@ export function BookLoadDetailsPage({ onNavigate, onBack }: BookLoadDetailsPageP
         if (!formData.dotNumber.trim()) newErrors.dotNumber = 'DOT number is required';
         if (!formData.truckNumber.trim()) newErrors.truckNumber = 'Truck number is required';
         if (!formData.trailerNumber.trim()) newErrors.trailerNumber = 'Trailer number is required';
-        if (!formData.insuranceProvider.trim()) newErrors.insuranceProvider = 'Insurance provider is required';
+        if (!formData.insuranceProvider.trim())
+            newErrors.insuranceProvider = 'Insurance provider is required';
         if (!formData.policyNumber.trim()) newErrors.policyNumber = 'Policy number is required';
 
         setErrors(newErrors);
@@ -240,7 +241,9 @@ export function BookLoadDetailsPage({ onNavigate, onBack }: BookLoadDetailsPageP
                                 className={errors.insuranceProvider ? 'border-red-500' : ''}
                             />
                             {errors.insuranceProvider && (
-                                <p className="text-xs text-red-600 mt-1">{errors.insuranceProvider}</p>
+                                <p className="text-xs text-red-600 mt-1">
+                                    {errors.insuranceProvider}
+                                </p>
                             )}
                         </div>
                         <div>
