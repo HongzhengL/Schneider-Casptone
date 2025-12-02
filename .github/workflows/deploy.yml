@@ -4,6 +4,7 @@ on:
     push:
         branches:
             - main
+            - v1.0.0/integration
     workflow_dispatch:
 
 permissions:
@@ -16,7 +17,7 @@ jobs:
         runs-on: ubuntu-latest
         defaults:
             run:
-                working-directory: frontend
+                working-directory: .
 
         steps:
             - name: Checkout repository
