@@ -19,10 +19,27 @@ const getBearerToken = (headerValue) => {
     return token.trim();
 };
 
+const frontendHostname = (() => {
+    try {
+        const url = new URL(config.frontendUrl);
+        return url.hostname;
+    } catch {
+        return '';
+    }
+})();
+
+const isLocalFrontend =
+    frontendHostname === 'localhost' ||
+    frontendHostname === '127.0.0.1' ||
+    frontendHostname === '[::1]';
+
+const cookieSameSite = isLocalFrontend ? 'lax' : 'none';
+const cookieSecure = !isLocalFrontend;
+
 const cookieOptions = (maxAge) => ({
     httpOnly: true,
-    sameSite: 'lax',
-    secure: config.nodeEnv === 'production',
+    sameSite: cookieSameSite,
+    secure: cookieSecure,
     ...(typeof maxAge === 'number' ? { maxAge } : {}),
 });
 
@@ -42,8 +59,8 @@ const setSessionCookies = (res, session, persistent = false) => {
 const clearSessionCookies = (res) => {
     const baseOptions = {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: config.nodeEnv === 'production',
+        sameSite: cookieSameSite,
+        secure: cookieSecure,
     };
 
     res.clearCookie(ACCESS_COOKIE, baseOptions);
