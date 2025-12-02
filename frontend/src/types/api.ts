@@ -234,3 +234,12 @@ export interface CoverageResponse {
     runCount: number;
     referenceDate: string;
 }
+
+export interface CoverageContributionPayload {
+    loadId?: string;
+    amount: number;
+    distance?: number;
+    completionDate?: string;
+    metadata?: Record<string, unknown>;
+    referenceDate?: string;
+}

@@ -16,6 +16,7 @@ import type {
     ProfileInput,
     SignupResponse,
     CoverageResponse,
+    CoverageContributionPayload,
 } from '../types/api';
 import type { ProfitabilitySettings } from '../components/ProfitabilitySettingsPage';
 
@@ -282,4 +283,13 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
 // Coverage API
 export async function fetchCoverage(): Promise<CoverageResponse> {
     return request<CoverageResponse>('/profitability/coverage');
+}
+
+export async function recordCoverageContribution(
+    payload: CoverageContributionPayload
+): Promise<CoverageResponse> {
+    return request<CoverageResponse>('/profitability/coverage', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
 }

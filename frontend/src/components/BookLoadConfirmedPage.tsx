@@ -51,28 +51,14 @@ export function BookLoadConfirmedPage({ load, onNavigate }: BookLoadConfirmedPag
             </div>
 
             <div className="p-4 border-b bg-gray-50">
-                <div className="flex items-center justify-between max-w-sm mx-auto">
+                <div className="flex items-center justify-between max-w-xs mx-auto">
                     <div className="flex flex-col items-center">
                         <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm">
                             ✓
                         </div>
                         <span className="text-xs mt-1 text-green-600">Confirm</span>
                     </div>
-                    <div className="flex-1 h-0.5 bg-green-500 mx-2"></div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm">
-                            ✓
-                        </div>
-                        <span className="text-xs mt-1 text-green-600">Details</span>
-                    </div>
-                    <div className="flex-1 h-0.5 bg-green-500 mx-2"></div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm">
-                            ✓
-                        </div>
-                        <span className="text-xs mt-1 text-green-600">Payment</span>
-                    </div>
-                    <div className="flex-1 h-0.5 bg-green-500 mx-2"></div>
+                    <div className="flex-1 h-0.5 bg-green-500 mx-3"></div>
                     <div className="flex flex-col items-center">
                         <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm">
                             ✓

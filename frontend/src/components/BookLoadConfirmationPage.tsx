@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { ChevronLeft, Calendar, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 import type { LoadRecord } from '../types/api';
+import { ApiError, recordCoverageContribution } from '../services/api';
 import { Button } from './ui/button';
 
 interface BookLoadConfirmationPageProps {
@@ -24,6 +27,8 @@ export function BookLoadConfirmationPage({
     onNavigate,
     onBack,
 }: BookLoadConfirmationPageProps) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     if (!load) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-white">
@@ -42,6 +47,42 @@ export function BookLoadConfirmationPage({
     const isProfitable = profitMargin >= 0;
     const totalProfit = profitMargin * distance;
 
+    const handleConfirmBooking = async () => {
+        if (!load) return;
+
+        // Use current time so the booking contributes to the current week's coverage
+        const completionDate = new Date().toISOString();
+
+        setIsSubmitting(true);
+
+        try {
+            await recordCoverageContribution({
+                loadId: load.id,
+                amount: Number.isFinite(load.priceNum) ? load.priceNum : 0,
+                distance: Number.isFinite(load.distanceNum) ? load.distanceNum : undefined,
+                completionDate,
+                metadata: {
+                    customer: load.customer,
+                    route: `${load.fromLocation} -> ${load.toLocation}`,
+                    dropDate:
+                        load.dropDate instanceof Date && !Number.isNaN(load.dropDate.getTime())
+                            ? load.dropDate.toISOString()
+                            : undefined,
+                },
+                referenceDate: completionDate,
+            });
+
+            onNavigate('bookloadconfirmed');
+        } catch (error) {
+            const message =
+                error instanceof ApiError
+                    ? error.message
+                    : 'Unable to record booking. Please try again.';
+            toast.error(message);
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="bg-white min-h-screen flex flex-col">
             <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-orange-50 to-orange-100">
@@ -55,31 +96,17 @@ export function BookLoadConfirmationPage({
             </div>
 
             <div className="p-4 border-b bg-gray-50">
-                <div className="flex items-center justify-between max-w-sm mx-auto">
+                <div className="flex items-center justify-between max-w-xs mx-auto">
                     <div className="flex flex-col items-center">
                         <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-semibold">
                             1
                         </div>
                         <span className="text-xs mt-1 text-orange-600">Confirm</span>
                     </div>
-                    <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
+                    <div className="flex-1 h-0.5 bg-gray-300 mx-3"></div>
                     <div className="flex flex-col items-center">
                         <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm">
                             2
-                        </div>
-                        <span className="text-xs mt-1 text-gray-500">Details</span>
-                    </div>
-                    <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm">
-                            3
-                        </div>
-                        <span className="text-xs mt-1 text-gray-500">Payment</span>
-                    </div>
-                    <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm">
-                            4
                         </div>
                         <span className="text-xs mt-1 text-gray-500">Done</span>
                     </div>
@@ -248,10 +275,11 @@ export function BookLoadConfirmationPage({
             <div className="mt-auto w-full max-w-md mx-auto px-4 pb-6 pt-4 border-t bg-white">
                 <div className="space-y-2">
                     <Button
-                        onClick={() => onNavigate('bookloaddetails')}
+                        onClick={handleConfirmBooking}
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12"
+                        disabled={isSubmitting}
                     >
-                        Continue to Details
+                        {isSubmitting ? 'Confirming…' : 'Confirm Booking'}
                     </Button>
                     <Button
                         onClick={onBack}

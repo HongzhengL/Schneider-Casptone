@@ -46,18 +46,22 @@ export function FixedCoverageInsight({
     onAdjust,
     onLeaderboard,
 }: FixedCoverageInsightProps) {
-    const normalizedFixedCost = Math.max(
-        0,
-        Number.isFinite(fixedCostPerPeriod) ? fixedCostPerPeriod : 0
-    );
-    const normalizedCovered = Math.max(0, Number.isFinite(coveredAmount) ? coveredAmount : 0);
+    const toNumber = (value: number | string | undefined | null) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : 0;
+    };
+
+    const normalizedFixedCost = Math.max(0, toNumber(fixedCostPerPeriod));
+    const normalizedCovered = Math.max(0, toNumber(coveredAmount));
     const remaining = Math.max(0, normalizedFixedCost - normalizedCovered);
-    const progressPercentage =
+    const rawProgress =
         normalizedFixedCost === 0
             ? normalizedCovered > 0
                 ? 100
                 : 0
-            : Math.min(100, (normalizedCovered / normalizedFixedCost) * 100);
+            : (normalizedCovered / normalizedFixedCost) * 100;
+    const progressPercentage =
+        rawProgress > 0 && rawProgress < 2 ? 2 : Math.min(100, Math.max(0, rawProgress));
 
     const periodLabel = formatWeekRange(periodStart, periodEnd);
     const runLabel =
@@ -122,10 +126,14 @@ export function FixedCoverageInsight({
                 {/* Progress Bar */}
                 <div className="relative h-4 w-full rounded-full bg-orange-100 overflow-hidden mb-3">
                     <div
-                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
-                            isProfitMode ? 'bg-green-500' : 'bg-orange-500'
-                        }`}
-                        style={{ width: `${progressPercentage}%` }}
+                        className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 z-10"
+                        style={{
+                            width: `${progressPercentage}%`,
+                            height: '100%',
+                            backgroundColor: isProfitMode
+                                ? 'var(--color-orange-500)'
+                                : 'var(--color-green-500)',
+                        }}
                     />
                 </div>
 

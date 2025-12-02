@@ -51,8 +51,13 @@ export function HomePage({ onNavigate, profitabilitySettings }: HomePageProps) {
         const loadCoverage = async () => {
             try {
                 const response = await fetchCoverage();
+                const normalizedCoverage = {
+                    ...response,
+                    coveredAmount: Number(response.coveredAmount) || 0,
+                    runCount: Number(response.runCount) || 0,
+                };
                 if (!isMounted) return;
-                setCoverage(response);
+                setCoverage(normalizedCoverage);
                 setCoverageError(null);
             } catch (err) {
                 if (!isMounted) return;
