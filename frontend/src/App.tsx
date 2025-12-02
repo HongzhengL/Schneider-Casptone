@@ -19,8 +19,6 @@ import { SignUpPage } from './components/SignUpPage';
 import { useAuth } from './contexts/AuthContext';
 import { LoadDetailPage } from './components/LoadDetailPage';
 import { BookLoadConfirmationPage } from './components/BookLoadConfirmationPage';
-import { BookLoadDetailsPage } from './components/BookLoadDetailsPage';
-import { BookLoadPaymentPage } from './components/BookLoadPaymentPage';
 import { BookLoadConfirmedPage } from './components/BookLoadConfirmedPage';
 import {
     fetchCustomMetrics,
@@ -353,32 +351,6 @@ export default function App() {
                     />
                 );
             }
-            case 'bookloaddetails':
-                return selectedLoad ? (
-                    <BookLoadDetailsPage
-                        onBack={() => setCurrentPage('bookload-confirmation')}
-                        onNavigate={setCurrentPage}
-                    />
-                ) : (
-                    <FindLoadsResultsPage
-                        customMetrics={customMetrics}
-                        onNavigate={setCurrentPage}
-                        filters={loadFilters}
-                        onFiltersChange={setLoadFilters}
-                        profitabilitySettings={profitabilitySettings}
-                        onSelectLoad={(load) => {
-                            setSelectedLoad(load);
-                            setCurrentPage('bookloaddetails');
-                        }}
-                    />
-                );
-            case 'bookloadpayment':
-                return (
-                    <BookLoadPaymentPage
-                        onBack={() => setCurrentPage('bookloaddetails')}
-                        onNavigate={setCurrentPage}
-                    />
-                );
             case 'bookloadconfirmed':
                 return <BookLoadConfirmedPage load={selectedLoad} onNavigate={setCurrentPage} />;
             case 'results':
