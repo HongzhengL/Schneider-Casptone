@@ -1,0 +1,90 @@
+name: Deploy Frontend (Netlify) and Backend (Cloud Run)
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    frontend-netlify:
+        name: Build and Deploy Frontend to Netlify
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: frontend
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build frontend
+              env:
+                  VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+              run: npm run build
+
+            - name: Deploy to Netlify
+              env:
+                  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+                  NETLIFY_SITE_NAME: ${{ secrets.NETLIFY_SITE_NAME }}
+              run: npx netlify-cli@17.36.1 deploy --prod --dir=dist --site=$NETLIFY_SITE_NAME --auth=$NETLIFY_AUTH_TOKEN
+
+    backend-cloud-run:
+        name: Deploy Backend to Cloud Run
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                shell: bash
+                working-directory: backend
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Authenticate to Google Cloud
+              uses: google-github-actions/auth@v2
+              with:
+                  credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+            - name: Setup Cloud SDK
+              uses: google-github-actions/setup-gcloud@v2
+              with:
+                  install_components: 'beta'
+
+            - name: Deploy to Cloud Run (source build)
+              env:
+                  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+                  GCP_REGION: ${{ secrets.GCP_REGION }}
+                  CLOUD_RUN_SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
+                  CLOUD_RUN_ENV_VARS: ${{ secrets.CLOUD_RUN_ENV_VARS }}
+              run: |
+                  gcloud config set project "$GCP_PROJECT_ID"
+
+                  ARGS=(
+                      run deploy "$CLOUD_RUN_SERVICE"
+                      --source .
+                      --region "$GCP_REGION"
+                      --platform managed
+                      --allow-unauthenticated
+                      --quiet
+                  )
+
+                  if [ -n "$CLOUD_RUN_ENV_VARS" ]; then
+                      ARGS+=(--set-env-vars "$CLOUD_RUN_ENV_VARS")
+                  fi
+
+                  gcloud "${ARGS[@]}"
