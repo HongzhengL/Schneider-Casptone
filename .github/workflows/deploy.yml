@@ -42,7 +42,7 @@ jobs:
               env:
                   NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
                   NETLIFY_SITE_NAME: ${{ secrets.NETLIFY_SITE_NAME }}
-              run: pwd && ls && npx netlify-cli@17.36.1 deploy --prod --dir=dist --site=$NETLIFY_SITE_NAME --auth=$NETLIFY_AUTH_TOKEN
+              run: npx netlify-cli@17.36.1 deploy --prod --dir=$(pwd)/dist --site=$NETLIFY_SITE_NAME --auth=$NETLIFY_AUTH_TOKEN
 
     backend-cloud-run:
         name: Deploy Backend to Cloud Run
