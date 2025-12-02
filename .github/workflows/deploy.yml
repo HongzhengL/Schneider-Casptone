@@ -31,7 +31,7 @@ jobs:
                   cache-dependency-path: package-lock.json
 
             - name: Install dependencies
-              run: cd .. && npm ci
+              run: cd .. && npm ci && cd -
 
             - name: Build frontend
               env:
