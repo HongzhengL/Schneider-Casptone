@@ -103,8 +103,6 @@ a database to store user‑specific profitability settings.
      “mock” mode and exposes health, load search and other endpoints using
      in‑memory data.
 
-<!-- Removed database setup instructions as they apply only to Supabase projects -->
-
 ### Running the Application
 
 Open two terminals—one for the backend and one for the frontend.
@@ -175,5 +173,4 @@ Within each workspace you can run `npm run lint` to lint that package, and
 * **Profitability Settings API** – see
   `docs/profitability-settings-api.md` for a full description of the settings
   API endpoints, request/response formats and Supabase integration.
-
-<!-- License section removed as per owner request -->
+  
