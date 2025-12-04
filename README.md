@@ -1,22 +1,22 @@
-# CS 620 Schneider Capstone Project – Team 2
+# CS 620 Schneider Capstone Project – Team 2
 
 ## Team Members
 
-* **Hongzheng Li** – Developer, Scrum Master, Scribe<br>
+* **Hongzheng Li** – Developer, Scrum Master, Scribe
   📧 hongzheng@cs.wisc.edu
 
-* **Tyler James Sussis** – Product Owner, UX<br>
+* **Tyler James Sussis** – Product Owner, UX
   📧 tsussis@wisc.edu
 
-* **Tianyuan Ru** – Developer, Testing Lead<br>
+* **Tianyuan Ru** – Developer, Testing Lead
   📧 tru@wisc.edu
 
-* **Yikai Chen** – Developer, Demo Coordinator<br>
+* **Yikai Chen** – Developer, Demo Coordinator
   📧 ychen2537@wisc.edu
 
 ## Project Overview
 
-This repository contains the final capstone project for **CS 620** in collaboration with
+This repository contains the final capstone project for **CS 620** in collaboration with
 **Schneider**. The goal of this project is to create a driver‑facing web application that
 helps owner‑operators and company drivers manage their business by:
 
@@ -66,7 +66,7 @@ a database to store user‑specific profitability settings.
 
 ### Prerequisites
 
-* **Node.js** ≥ 18 and **npm** (or `pnpm`, `yarn`) installed.
+* **Node.js** ≥ 18 and **npm** (or `pnpm`, `yarn`) installed.
 * A [Supabase](https://supabase.com/) project. You’ll need a Supabase URL and an API
   key to enable authentication and persistence of profitability settings.
 
@@ -81,7 +81,7 @@ a database to store user‑specific profitability settings.
    ```
 
    The repository uses
-   [npm workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces) to manage
+   [npm workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces) to manage
    the **backend** and **frontend** packages.
 
 2. **Set environment variables**:
@@ -164,7 +164,7 @@ Open two terminals—one for the backend and one for the frontend.
   - `LeaderboardPage`, `SettingsPage`, `MorePage` – additional features.
 
   Authentication and session state are handled via the `AuthContext` using
-  Supabase. The UI uses Radix UI components and Tailwind CSS. Toast notifications
+  Supabase. The UI uses Radix UI components and Tailwind CSS. Toast notifications
   are provided by `sonner`.
 
 ### Scripts
@@ -180,7 +180,7 @@ Within each workspace you can run `npm run lint` to lint that package, and
 
 ## Additional Documentation
 
-* **Assumptions & Design Decisions** – see `docs/assumptions.md` for details on
+* **Assumptions & Design Decisions** – see `docs/assumptions.md` for details on
   assumptions around fixed cost coverage and how calculations are mocked for
   demos.
 * **Profitability Settings API** – see
