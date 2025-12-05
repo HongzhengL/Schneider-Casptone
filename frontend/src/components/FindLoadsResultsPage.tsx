@@ -398,8 +398,11 @@ export function FindLoadsResultsPage({
                 typeof document !== 'undefined' &&
                 createPortal(
                     <div
-                        className="fixed left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 pointer-events-none flex justify-end z-40"
-                        style={{ bottom: '6rem' }}
+                        className="fixed left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 pointer-events-none flex justify-end"
+                        style={{
+                            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)',
+                            zIndex: 45,
+                        }}
                     >
                         <Button
                             onClick={() => setShowComparison(true)}
